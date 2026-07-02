@@ -9,8 +9,6 @@ export declare class EdgeTicker {
     private readonly canvas;
     private readonly gl;
     private readonly renderer;
-    private readonly runway;
-    private readonly ownsRunway;
     private options;
     private layoutState;
     private distortionTextureSource;
@@ -25,7 +23,7 @@ export declare class EdgeTicker {
     update(overrides: PartialTickerOptions): void;
     /** Force a layout rebuild against the current options and viewport. */
     refresh(): void;
-    /** Remove listeners, release the runway (if owned) and stop rendering. */
+    /** Remove listeners and stop rendering. */
     destroy(): void;
     private start;
     /** Reload async resources (font/texture) then rebuild. */

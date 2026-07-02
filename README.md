@@ -16,9 +16,10 @@ repository so the package works straight from GitHub with no build step.
 ## Quick start
 
 Add a full-viewport canvas as a fixed, non-interactive overlay, then bind the
-ticker to it. The library sizes the canvas, listens for scroll/resize, and (by
-default) appends an invisible runway to `<body>` so there is always enough scroll
-distance to complete the ticker travel.
+ticker to it. The library sizes the canvas and listens for scroll/resize. It maps
+the document's existing scroll range onto the full ticker travel — it adds no
+scroll spacer, so the ticker completes exactly at the bottom of your content
+(shorter pages simply move the ticker faster per pixel scrolled).
 
 ```html
 <canvas id="edge-ticker" aria-hidden="true"></canvas>
@@ -79,9 +80,8 @@ const ticker = createEdgeTicker(canvas, config);
 ```
 
 - `canvas` — `HTMLCanvasElement` or a selector string.
-- `config` — a partial `TickerOptions`, plus an optional `runway`
-  (`HTMLElement` or selector). If no runway is given, one is created and appended
-  to `<body>`.
+- `config` — a partial `TickerOptions`. All fields are optional and merged over
+  `defaultOptions`.
 
 Returned `EdgeTicker` instance:
 
@@ -90,7 +90,7 @@ Returned `EdgeTicker` instance:
 | `update(overrides)` | Merge new options in and rebuild (reloads font/texture if changed). |
 | `refresh()` | Force a rebuild against current options and viewport. |
 | `getOptions()` | Read-only snapshot of the resolved options. |
-| `destroy()` | Remove listeners, drop the runway (if owned), stop rendering. |
+| `destroy()` | Remove listeners and stop rendering. |
 
 ## Options
 
@@ -109,7 +109,7 @@ import { defaultOptions } from "@metervara/edge-ticker";
 | `cornerRadius` | `number` | `86` | Centerline radius of the viewport-edge corners. |
 | `edgePadding` | `number` | `24` | Inset of the path from the viewport edge. |
 | `direction` | `"forward" \| "reverse"` | `"reverse"` | `reverse` enters horizontally on the top edge; `forward` enters on the right edge. |
-| `exitOverscan` | `{ start, end }` | `{ 0, -0.5 }` | Normalized to strip length; negative pulls the path inside. |
+| `exitOverscan` | `{ start, end }` | `{ 0, -0.5 }` | Where the text sits at each end, normalized to strip length & relative to scroll direction. `0` = enters/exits exactly; negative pulls it *inside* (partially visible); positive overscans fully out. Default leaves it half-in at the end. |
 | `repeatTexture` | `boolean` | `true` | Repeat the text texture inside the moving window. |
 | `repeatWindowCopies` | `number` | `2` | How many copies of the text fit in the window. |
 | `scrollLaps` | `number` | `1` | Visible ticker passes over the full page scroll. |
@@ -145,21 +145,27 @@ createEdgeTicker("#edge-ticker", {
 
 ### Distortion
 
+Distortion is entirely texture-driven — supply an RG map and it offsets the
+glyphs per fragment (red along the ticker, green across it). There is no
+procedural/math fallback: with no `textureUrl` the effect is inert.
+
 ```typescript
 type DistortionOptions = {
-  enabled: boolean;        // default true
+  enabled: boolean;        // master switch (default true) — needs a texture to render
   repeatX: number;         // default 8
   repeatY: number;         // default 1
   scrollWithText: boolean; // false = anchored to edge, true = travels with text
-  size: number;            // fallback map size when no textureUrl (default 256)
   strengthAlong: number;   // px offset along the ticker (default 8)
   strengthAcross: number;  // px offset across the ticker (default 10)
-  textureUrl?: string;     // optional RG map; red = along, green = across
+  textureUrl?: string;     // RG map; red = along, green = across
 };
 ```
 
-With no `textureUrl`, a procedural RG map is generated, so distortion works with
-zero assets.
+```typescript
+createEdgeTicker("#edge-ticker", {
+  distortion: { textureUrl: "/textures/my-distortion-rg.png" },
+});
+```
 
 ## Development
 

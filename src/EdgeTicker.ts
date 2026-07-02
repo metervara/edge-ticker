@@ -49,8 +49,6 @@ export class EdgeTicker {
   private readonly canvas: HTMLCanvasElement;
   private readonly gl: WebGL2RenderingContext;
   private readonly renderer: WebGLTickerRenderer;
-  private readonly runway: HTMLElement;
-  private readonly ownsRunway: boolean;
 
   private options: TickerOptions;
   private layoutState: LayoutState | undefined;
@@ -62,24 +60,10 @@ export class EdgeTicker {
   private readonly onScroll = () => this.requestDraw();
 
   constructor(canvas: HTMLCanvasElement | string, config: EdgeTickerConfig = {}) {
-    const { runway, ...options } = config;
-
     this.canvas = requireElement<HTMLCanvasElement>(canvas);
     this.gl = getWebGLContext(this.canvas);
     this.renderer = createWebGLTickerRenderer(this.gl);
-    this.options = resolveOptions(defaultOptions, options);
-
-    if (runway) {
-      this.runway = requireElement<HTMLElement>(runway);
-      this.ownsRunway = false;
-    } else {
-      this.runway = document.createElement("div");
-      this.runway.setAttribute("aria-hidden", "true");
-      this.runway.style.position = "relative";
-      this.runway.style.height = "0px";
-      document.body.appendChild(this.runway);
-      this.ownsRunway = true;
-    }
+    this.options = resolveOptions(defaultOptions, config);
 
     void this.start();
   }
@@ -104,7 +88,7 @@ export class EdgeTicker {
     this.rebuildLayout();
   }
 
-  /** Remove listeners, release the runway (if owned) and stop rendering. */
+  /** Remove listeners and stop rendering. */
   destroy(): void {
     if (this.destroyed) {
       return;
@@ -113,10 +97,6 @@ export class EdgeTicker {
     this.destroyed = true;
     window.removeEventListener("resize", this.onResize);
     window.removeEventListener("scroll", this.onScroll);
-
-    if (this.ownsRunway) {
-      this.runway.remove();
-    }
   }
 
   private async start() {
@@ -184,14 +164,11 @@ export class EdgeTicker {
       1,
       activeTravelDistance + scrollPadding.start + scrollPadding.end,
     );
-    const targetScrollDistance = Math.ceil(travelDistance);
 
     this.canvas.width = Math.ceil(cssWidth * dpr);
     this.canvas.height = Math.ceil(cssHeight * dpr);
     this.canvas.style.width = `${cssWidth}px`;
     this.canvas.style.height = `${cssHeight}px`;
-    this.runway.style.height = "0px";
-    this.runway.style.height = `${Math.max(0, targetScrollDistance - this.getMaxScrollDistance())}px`;
     updateWebGLTickerRenderer(
       this.renderer,
       strip,

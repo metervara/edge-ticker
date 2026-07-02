@@ -2,7 +2,6 @@ import fragmentShaderSource from "./shaders/edge-ticker.frag.glsl";
 import vertexShaderSource from "./shaders/edge-ticker.vert.glsl";
 import type { DistortionOptions, TickerDirection } from "./types";
 import type { TextStrip } from "./textStrip";
-import { createDistortionMap } from "./distortion";
 import {
   createProgram,
   createShader,
@@ -127,8 +126,7 @@ export function updateWebGLTickerRenderer(
   distortionSource?: TexImageSource,
 ) {
   const { gl: glContext } = target;
-  const distortionSize = Math.max(2, Math.round(distortion.size));
-  const distortionMap = createDistortionMap(distortionSize);
+  const hasDistortion = distortion.enabled && Boolean(distortionSource);
 
   target.pathLength = pathLength;
   target.stripWidth = strip.cssWidth;
@@ -143,7 +141,7 @@ export function updateWebGLTickerRenderer(
   glContext.uniform1f(target.uniforms.windowLength, windowLength);
   glContext.uniform1i(target.uniforms.texture, 0);
   glContext.uniform1i(target.uniforms.distortionSampler, 1);
-  glContext.uniform1f(target.uniforms.distortionEnabled, distortion.enabled ? 1 : 0);
+  glContext.uniform1f(target.uniforms.distortionEnabled, hasDistortion ? 1 : 0);
   glContext.uniform2f(
     target.uniforms.distortionRepeat,
     Math.max(0.001, distortion.repeatX),
@@ -187,16 +185,18 @@ export function updateWebGLTickerRenderer(
       distortionSource,
     );
   } else {
+    // No texture supplied: upload a neutral 1x1 pixel so the sampler stays
+    // complete. Distortion is disabled via the uniform above, so it is unused.
     glContext.texImage2D(
       glContext.TEXTURE_2D,
       0,
       glContext.RGBA,
-      distortionSize,
-      distortionSize,
+      1,
+      1,
       0,
       glContext.RGBA,
       glContext.UNSIGNED_BYTE,
-      distortionMap,
+      new Uint8Array([128, 128, 128, 255]),
     );
   }
 }

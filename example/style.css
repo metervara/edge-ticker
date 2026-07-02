@@ -35,7 +35,7 @@ body {
 .page {
   position: relative;
   z-index: 1;
-  max-width: 62ch;
+  max-width: 100ch;
   margin: 0 auto;
   padding: clamp(80px, 12vw, 180px) clamp(28px, 8vw, 96px);
 }
@@ -43,18 +43,18 @@ body {
 h1 {
   margin: 0 0 24px;
   font-size: clamp(3rem, 10vw, 7rem);
-  line-height: 0.9;
+  /* line-height: 0.9; */
 }
 
 .lede {
   margin: 0 0 40px;
-  font-size: clamp(1.15rem, 2.4vw, 1.6rem);
+  font-size: clamp(2rem, 3vw, 3rem);
   line-height: 1.4;
 }
 
 p {
   margin: 0 0 1.4em;
-  font-size: 1.05rem;
+  font-size: 1.5rem;
   line-height: 1.6;
   color: #34362f;
 }

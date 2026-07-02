@@ -40,16 +40,16 @@ export const defaultOptions: TickerOptions = {
   columnStep: 2,
   rowStep: 3,
 
-  // Distortion texture
+  // Distortion texture. Supply `textureUrl` (an RG map) to enable distortion;
+  // with no texture the effect is inert. Red offsets glyphs along the ticker,
+  // green offsets across it.
   distortion: {
     enabled: true,
     repeatX: 8,
     repeatY: 1,
     scrollWithText: false,
-    size: 256,
     strengthAlong: 8,
     strengthAcross: 10,
-    // Optional RG texture. Red offsets along the ticker, green offsets across it.
     // textureUrl: "/textures/distortion-rg.png",
   },
 

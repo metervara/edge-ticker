@@ -33,18 +33,17 @@ export type TickerFont = {
     weight: string | number;
 };
 export type DistortionOptions = {
+    /** Master switch. Distortion only renders when this is true AND `textureUrl` resolves. */
     enabled: boolean;
     repeatX: number;
     repeatY: number;
     /** false anchors distortion to edge locations; true makes the pattern travel with the text. */
     scrollWithText: boolean;
-    /** Size of the generated fallback distortion map when no `textureUrl` is set. */
-    size: number;
     /** Green-channel offset in ticker-text pixels (across the strip). */
     strengthAcross: number;
     /** Red-channel offset in ticker-text pixels (along the strip). */
     strengthAlong: number;
-    /** Optional RG texture. Red offsets along the ticker, green offsets across it. */
+    /** RG distortion map. Red offsets glyphs along the ticker, green offsets across it. */
     textureUrl?: string;
 };
 /** A range normalized to some length. `start`/`end` are relative to scroll direction. */
@@ -84,11 +83,9 @@ export type TickerOptions = {
 export type PartialTickerOptions = {
     [K in keyof TickerOptions]?: TickerOptions[K] extends object ? TickerOptions[K] extends unknown[] ? TickerOptions[K] : Partial<TickerOptions[K]> : TickerOptions[K];
 };
-export type EdgeTickerConfig = PartialTickerOptions & {
-    /**
-     * Scroll runway element used to guarantee enough page scroll to complete the
-     * ticker travel. Pass an element (or selector) to reuse one, otherwise a
-     * spacer is created and appended to `<body>`.
-     */
-    runway?: HTMLElement | string;
-};
+/**
+ * Configuration accepted by `createEdgeTicker`. The ticker maps the document's
+ * existing scroll range onto the full ticker travel — it does not add any
+ * scroll spacer, so the effect completes exactly at the bottom of your content.
+ */
+export type EdgeTickerConfig = PartialTickerOptions;
