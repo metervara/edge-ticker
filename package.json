@@ -1,0 +1,30 @@
+{
+  "name": "@metervara/edge-ticker",
+  "version": "1.0.0",
+  "description": "Scroll-linked WebGL ticker that maps styled text around the viewport edge",
+  "author": "Metervara / Patrik Svensson",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/edge-ticker.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/edge-ticker.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0",
+    "vite": "^8.0.0",
+    "vite-plugin-dts": "^3.0.0",
+    "vite-plugin-glsl": "^1.6.0"
+  }
+}

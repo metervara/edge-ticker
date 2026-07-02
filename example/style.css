@@ -1,0 +1,60 @@
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #111111;
+  background: #f4f6ef;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    linear-gradient(90deg, rgba(17, 17, 17, 0.05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(17, 17, 17, 0.05) 1px, transparent 1px),
+    #f4f6ef;
+  background-size: 56px 56px;
+}
+
+/* The ticker canvas is a fixed, non-interactive overlay covering the viewport. */
+.edge-ticker-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  max-width: 62ch;
+  margin: 0 auto;
+  padding: clamp(80px, 12vw, 180px) clamp(28px, 8vw, 96px);
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-size: clamp(3rem, 10vw, 7rem);
+  line-height: 0.9;
+}
+
+.lede {
+  margin: 0 0 40px;
+  font-size: clamp(1.15rem, 2.4vw, 1.6rem);
+  line-height: 1.4;
+}
+
+p {
+  margin: 0 0 1.4em;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #34362f;
+}
