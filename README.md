@@ -7,7 +7,7 @@ scrolls.
 ## Install
 
 ```bash
-npm install github:metervara/edge-ticker#v1.2.0
+npm install github:metervara/edge-ticker#v1.2.1
 ```
 
 There is no npm release — pin to a git tag. The built `dist/` is committed to the

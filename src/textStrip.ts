@@ -19,6 +19,11 @@ type FontMetrics = {
   descent: number;
 };
 
+type GlyphBounds = {
+  ascent: number;
+  descent: number;
+};
+
 type LaidOutGlyph = {
   advance: number;
   glyph: string;
@@ -84,13 +89,14 @@ export function renderTextStrip(
       const backgroundSegments = mergeSegments(
         layout.backgroundSegments.filter((segment) => segment.run === run),
       );
-      const runMetrics = measureFontMetrics(measureContext, options.font, options, run);
+      const glyphBounds = measureGlyphBounds(measureContext, options.font, run);
 
       backgroundSegments.forEach((segment) => {
         drawBackgroundSegment(
           stripContext,
           segment,
-          runMetrics,
+          metrics.baseline,
+          glyphBounds,
           cssHeight,
           options,
           run.background as string,
@@ -275,21 +281,45 @@ function measureFontMetrics(
   context: CanvasRenderingContext2D,
   font: TickerFont,
   options: TickerOptions,
-  run?: TickerRun,
 ): FontMetrics {
+  const bounds = measureFontBounds(context, font);
+
+  return {
+    ascent: bounds.ascent,
+    baseline:
+      options.stripPaddingY +
+      (font.lineHeight - bounds.ascent - bounds.descent) / 2 +
+      bounds.ascent,
+    descent: bounds.descent,
+  };
+}
+
+function measureGlyphBounds(
+  context: CanvasRenderingContext2D,
+  font: TickerFont,
+  run: TickerRun,
+): GlyphBounds {
+  return measureFontBounds(context, font, run);
+}
+
+function measureFontBounds(
+  context: CanvasRenderingContext2D,
+  font: TickerFont,
+  run?: TickerRun,
+): GlyphBounds {
   context.font = getCanvasFont(font, run);
 
   const metrics = context.measureText("Hg");
-  const ascent = metrics.actualBoundingBoxAscent || font.size * 0.78;
-  const descent = metrics.actualBoundingBoxDescent || font.size * 0.22;
 
   return {
-    ascent,
-    baseline:
-      options.stripPaddingY +
-      (font.lineHeight - ascent - descent) / 2 +
-      ascent,
-    descent,
+    ascent:
+      metrics.fontBoundingBoxAscent ||
+      metrics.actualBoundingBoxAscent ||
+      font.size * 0.78,
+    descent:
+      metrics.fontBoundingBoxDescent ||
+      metrics.actualBoundingBoxDescent ||
+      font.size * 0.22,
   };
 }
 
@@ -345,15 +375,16 @@ function mergeSegments(segments: LaidOutSegment[]) {
 function drawBackgroundSegment(
   context: CanvasRenderingContext2D,
   segment: LaidOutSegment,
-  metrics: FontMetrics,
+  baseline: number,
+  bounds: GlyphBounds,
   rowHeight: number,
   options: TickerOptions,
   fill: string,
 ) {
   const y =
     segment.row * rowHeight +
-    metrics.baseline -
-    metrics.ascent -
+    baseline -
+    bounds.ascent -
     options.backgroundPaddingY;
 
   drawRoundedRect(
@@ -361,7 +392,7 @@ function drawBackgroundSegment(
     segment.start - options.backgroundPaddingX,
     y,
     segment.end - segment.start + options.backgroundPaddingX * 2,
-    metrics.ascent + metrics.descent + options.backgroundPaddingY * 2,
+    bounds.ascent + bounds.descent + options.backgroundPaddingY * 2,
     options.backgroundRadius,
   );
   context.fillStyle = fill;
