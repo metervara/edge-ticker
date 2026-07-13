@@ -7,9 +7,12 @@ in float vWindowX;
 
 uniform float uDistortionEnabled;
 uniform float uRepeatTexture;
+uniform float uTextureRows;
+uniform float uTextureRowWidth;
 uniform float uWindowLength;
 uniform sampler2D uDistortionTexture;
 uniform vec2 uDistortionStrength;
+uniform float uStripWidth;
 uniform sampler2D uTexture;
 
 out vec4 outColor;
@@ -26,7 +29,11 @@ void main() {
     uv += offset * uDistortionStrength;
   }
 
-  if (uRepeatTexture < 0.5 && (uv.x < 0.0 || uv.x > 1.0)) {
+  float sourceX = uv.x * uStripWidth;
+
+  if (uRepeatTexture > 0.5) {
+    sourceX = mod(mod(sourceX, uStripWidth) + uStripWidth, uStripWidth);
+  } else if (sourceX < 0.0 || sourceX > uStripWidth) {
     discard;
   }
 
@@ -34,5 +41,17 @@ void main() {
     discard;
   }
 
-  outColor = texture(uTexture, uv);
+  float row = floor(sourceX / uTextureRowWidth);
+
+  if (row < 0.0 || row >= uTextureRows) {
+    discard;
+  }
+
+  float localX = sourceX - row * uTextureRowWidth;
+  vec2 atlasUv = vec2(
+    localX / uTextureRowWidth,
+    (row + uv.y) / uTextureRows
+  );
+
+  outColor = texture(uTexture, atlasUv);
 }

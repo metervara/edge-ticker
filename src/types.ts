@@ -73,6 +73,7 @@ export type EdgePadding =
 export type TickerOptions = {
   // Text rendering
   backgroundPaddingX: number;
+  backgroundPaddingY: number;
   backgroundRadius: number;
   font: TickerFont;
   letterSpacing: number;

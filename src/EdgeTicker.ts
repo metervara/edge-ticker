@@ -138,7 +138,8 @@ export class EdgeTicker {
     const cssWidth = window.innerWidth;
     const cssHeight = window.innerHeight;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const strip = renderTextStrip(options, dpr);
+    const maxTextureSize = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) as number;
+    const strip = renderTextStrip(options, dpr, maxTextureSize);
     const overscan = this.resolveOverscan(options, strip);
     const path = buildEdgePath(cssWidth, cssHeight, options, overscan.path);
     const windowLength = options.repeatTexture

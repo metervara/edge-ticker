@@ -1,6 +1,7 @@
 //#region src/defaults.ts
 var e = {
 	backgroundPaddingX: 12,
+	backgroundPaddingY: 6,
 	backgroundRadius: 7,
 	font: {
 		family: "EdgeTickerSans",
@@ -283,63 +284,130 @@ function x(e, t) {
 }
 //#endregion
 //#region src/textStrip.ts
-function S(e, t) {
-	let n = Math.min(t, 2), r = o(document.createElement("canvas")), i = e.runs.map((t) => w(r, t, e)), a = Math.ceil(i.reduce((e, t) => e + t, 0) + e.stripPaddingX * 2), s = Math.ceil(e.font.lineHeight + e.stripPaddingY * 2), c = document.createElement("canvas"), l = o(c);
-	c.width = Math.ceil(a * n), c.height = Math.ceil(s * n), l.scale(n, n), l.textBaseline = "alphabetic", l.imageSmoothingEnabled = !0, l.imageSmoothingQuality = "high", r.font = T(e.font);
-	let u = r.measureText("Hg"), d = u.actualBoundingBoxAscent || e.font.size * .78, f = u.actualBoundingBoxDescent || e.font.size * .22, p = e.stripPaddingY + (e.font.lineHeight - d - f) / 2 + d, m = e.stripPaddingX;
-	e.runs.forEach((t, n) => {
-		let r = i[n] ?? 0;
-		t.background && (k(l, m - e.backgroundPaddingX, e.stripPaddingY - 6, r + e.backgroundPaddingX * 2, e.font.lineHeight + 12, e.backgroundRadius), l.fillStyle = t.background, l.fill()), l.font = T(e.font, t), l.fillStyle = t.fill || "#111111", l.globalCompositeOperation = t.punchOut ? "destination-out" : "source-over", O(l, t.text, m, p, t.tracking ?? e.letterSpacing), t.underline && (l.strokeStyle = t.fill || "#111111", l.lineWidth = Math.max(2, e.font.size * .07), l.beginPath(), l.moveTo(m, p + e.font.size * .14), l.lineTo(m + r, p + e.font.size * .14), l.stroke()), l.globalCompositeOperation = "source-over", m += r;
-	});
-	let h = C(c, n);
-	return {
-		canvas: c,
-		cssHeight: s,
-		cssWidth: a,
-		midline: s / 2,
-		scale: n,
-		visibleEnd: h.end,
-		visibleStart: h.start
+function S(e, t, n = 8192) {
+	let r = Math.min(t, 2), i = o(document.createElement("canvas")), a = Math.ceil(C(i, e)), s = Math.max(1, Math.floor(n / r)), c = w(i, e, Math.min(a, s)), l = E(i, e.font, e), u = Math.ceil(c.cssWidth), d = Math.ceil(e.font.lineHeight + e.stripPaddingY * 2), f = Math.ceil(c.rowWidth), p = c.rowCount, m = document.createElement("canvas"), h = o(m);
+	return m.width = Math.ceil(f * r), m.height = Math.ceil(d * p * r), h.scale(r, r), h.textBaseline = "alphabetic", h.imageSmoothingEnabled = !0, h.imageSmoothingQuality = "high", e.runs.forEach((t) => {
+		if (t.background) {
+			let n = A(c.backgroundSegments.filter((e) => e.run === t)), r = E(i, e.font, e, t);
+			n.forEach((n) => {
+				j(h, n, r, d, e, t.background);
+			});
+		}
+		h.font = D(e.font, t), h.fillStyle = t.fill || "#111111", h.globalCompositeOperation = t.punchOut ? "destination-out" : "source-over", c.glyphs.filter((e) => e.run === t).forEach((e) => {
+			h.fillText(e.glyph, e.localX, e.row * d + l.baseline);
+		}), t.underline && M(h, A(c.underlineSegments.filter((e) => e.run === t)), l, d, e, t.fill || "#111111"), h.globalCompositeOperation = "source-over";
+	}), {
+		canvas: m,
+		cssHeight: d,
+		cssWidth: u,
+		midline: d / 2,
+		scale: r,
+		textureRows: p,
+		textureRowWidth: f,
+		visibleEnd: c.visibleEnd,
+		visibleStart: c.visibleStart
 	};
 }
 function C(e, t) {
-	let { data: n, height: r, width: i } = o(e).getImageData(0, 0, e.width, e.height), a = i, s = -1;
-	for (let e = 0; e < r; e += 1) for (let t = 0; t < i; t += 1) n[(e * i + t) * 4 + 3] > 0 && (a = Math.min(a, t), s = Math.max(s, t));
-	return s < a ? {
-		end: e.width / t,
-		start: 0
-	} : {
-		end: (s + 1) / t,
-		start: a / t
-	};
+	return t.stripPaddingX * 2 + t.runs.reduce((n, r) => n + T(e, r, t), 0);
 }
 function w(e, t, n) {
-	return e.font = T(n.font, t), D(e, t.text, t.tracking ?? n.letterSpacing);
+	let r = [], i = [], a = [], o = t.stripPaddingX, s = Infinity, c = -Infinity;
+	function l(e, t) {
+		s = Math.min(s, e), c = Math.max(c, t);
+	}
+	t.runs.forEach((s) => {
+		let c = s.tracking ?? t.letterSpacing, u = Array.from(s.text);
+		e.font = D(t.font, s), u.forEach((t, d) => {
+			let f = e.measureText(t).width, p = f + (d < u.length - 1 ? c : 0), m = Math.floor(o / n) * n, h = o - m;
+			h > 0 && h + Math.max(f, p) > n && (o = m + n);
+			let g = Math.floor(o / n), _ = o, v = o - g * n, y = o + p, b = t.trim().length > 0, x = {
+				advance: p,
+				glyph: t,
+				localX: v,
+				logicalEnd: y,
+				logicalStart: _,
+				row: g,
+				run: s,
+				visible: b,
+				width: f
+			};
+			r.push(x), s.background && p > 0 ? (i.push({
+				end: v + p,
+				row: g,
+				run: s,
+				start: v
+			}), l(_, y)) : b && f > 0 && l(_, _ + f), s.underline && p > 0 && (a.push({
+				end: v + p,
+				row: g,
+				run: s,
+				start: v
+			}), l(_, y)), o += p;
+		});
+	}), o += t.stripPaddingX;
+	let u = Math.max(1, o), d = Math.max(1, Math.ceil(u / n));
+	return (!Number.isFinite(s) || !Number.isFinite(c)) && (s = 0, c = u), {
+		backgroundSegments: i,
+		cssWidth: u,
+		glyphs: r,
+		rowCount: d,
+		rowWidth: n,
+		underlineSegments: a,
+		visibleEnd: c,
+		visibleStart: s
+	};
 }
-function T(e, t) {
-	return `${t?.fontStyle ?? e.style} ${t?.fontWeight ?? e.weight} ${e.size}px ${E(e.family)}, ${e.fallback}`;
+function T(e, t, n) {
+	return e.font = D(n.font, t), k(e, t.text, t.tracking ?? n.letterSpacing);
 }
-function E(e) {
+function E(e, t, n, r) {
+	e.font = D(t, r);
+	let i = e.measureText("Hg"), a = i.actualBoundingBoxAscent || t.size * .78, o = i.actualBoundingBoxDescent || t.size * .22;
+	return {
+		ascent: a,
+		baseline: n.stripPaddingY + (t.lineHeight - a - o) / 2 + a,
+		descent: o
+	};
+}
+function D(e, t) {
+	return `${t?.fontStyle ?? e.style} ${t?.fontWeight ?? e.weight} ${e.size}px ${O(e.family)}, ${e.fallback}`;
+}
+function O(e) {
 	return e.includes(" ") ? `"${e}"` : e;
 }
-function D(e, t, n) {
+function k(e, t, n) {
 	let r = Array.from(t);
 	return r.reduce((t, i, a) => {
 		let o = a < r.length - 1 ? n : 0;
 		return t + e.measureText(i).width + o;
 	}, 0);
 }
-function O(e, t, n, r, i) {
-	let a = n;
-	Array.from(t).forEach((t, n, o) => {
-		e.fillText(t, a, r), a += e.measureText(t).width, n < o.length - 1 && (a += i);
+function A(e) {
+	let t = [...e].sort((e, t) => e.row === t.row ? e.start - t.start : e.row - t.row), n = [];
+	return t.forEach((e) => {
+		let t = n.at(-1);
+		if (t && t.run === e.run && t.row === e.row && e.start <= t.end + .1) {
+			t.end = Math.max(t.end, e.end);
+			return;
+		}
+		n.push({ ...e });
+	}), n;
+}
+function j(e, t, n, r, i, a) {
+	let o = t.row * r + n.baseline - n.ascent - i.backgroundPaddingY;
+	N(e, t.start - i.backgroundPaddingX, o, t.end - t.start + i.backgroundPaddingX * 2, n.ascent + n.descent + i.backgroundPaddingY * 2, i.backgroundRadius), e.fillStyle = a, e.fill();
+}
+function M(e, t, n, r, i, a) {
+	e.strokeStyle = a, e.lineWidth = Math.max(2, i.font.size * .07), t.forEach((t) => {
+		let a = t.row * r + n.baseline + i.font.size * .14;
+		e.beginPath(), e.moveTo(t.start, a), e.lineTo(t.end, a), e.stroke();
 	});
 }
-function k(e, t, n, r, i, a) {
+function N(e, t, n, r, i, a) {
 	let o = Math.min(a, r / 2, i / 2);
 	e.beginPath(), e.moveTo(t + o, n), e.lineTo(t + r - o, n), e.quadraticCurveTo(t + r, n, t + r, n + o), e.lineTo(t + r, n + i - o), e.quadraticCurveTo(t + r, n + i, t + r - o, n + i), e.lineTo(t + o, n + i), e.quadraticCurveTo(t, n + i, t, n + i - o), e.lineTo(t, n + o), e.quadraticCurveTo(t, n, t + o, n), e.closePath();
 }
-async function A(e) {
+async function P(e) {
 	if (e.url) {
 		let t = new FontFace(e.family, `url(${e.url})`, {
 			style: e.style,
@@ -351,18 +419,18 @@ async function A(e) {
 }
 //#endregion
 //#region src/distortion.ts
-async function j(e) {
+async function F(e) {
 	if (!e.textureUrl) return;
 	let t = new Image();
 	return t.crossOrigin = "anonymous", t.decoding = "async", t.src = e.textureUrl, await t.decode(), t;
 }
 //#endregion
 //#region src/shaders/edge-ticker.frag.glsl
-var M = "#version 300 es\nprecision highp float;\n\nin vec2 vDistortionUv;\nin vec2 vUv;\nin float vWindowX;\n\nuniform float uDistortionEnabled;\nuniform float uRepeatTexture;\nuniform float uWindowLength;\nuniform sampler2D uDistortionTexture;\nuniform vec2 uDistortionStrength;\nuniform sampler2D uTexture;\n\nout vec4 outColor;\n\nvoid main() {\n  if (vWindowX < 0.0 || vWindowX > uWindowLength) {\n    discard;\n  }\n\n  vec2 uv = vUv;\n\n  if (uDistortionEnabled > 0.5) {\n    vec2 offset = texture(uDistortionTexture, vDistortionUv).rg * 2.0 - 1.0;\n    uv += offset * uDistortionStrength;\n  }\n\n  if (uRepeatTexture < 0.5 && (uv.x < 0.0 || uv.x > 1.0)) {\n    discard;\n  }\n\n  if (uv.y < 0.0 || uv.y > 1.0) {\n    discard;\n  }\n\n  outColor = texture(uTexture, uv);\n}", N = "#version 300 es\nprecision highp float;\n\nin vec2 aPosition;\nin float aPathDistance;\nin float aTexY;\n\nuniform vec2 uResolution;\nuniform vec2 uDistortionRepeat;\nuniform float uDistortionScrollMode;\nuniform float uPathLength;\nuniform float uSourceBias;\nuniform float uStripWidth;\nuniform float uTravel;\nuniform float uTravelFactor;\n\nout vec2 vDistortionUv;\nout vec2 vUv;\nout float vWindowX;\n\nvoid main() {\n  vec2 zeroToOne = aPosition / uResolution;\n  vec2 clip = zeroToOne * 2.0 - 1.0;\n  float windowX = aPathDistance + uTravelFactor * uTravel + uSourceBias;\n  float pathUvX = aPathDistance / uPathLength;\n  float textUvX = windowX / uStripWidth;\n\n  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);\n  vUv = vec2(textUvX, aTexY);\n  vWindowX = windowX;\n  vDistortionUv = vec2(\n    mix(pathUvX, textUvX, uDistortionScrollMode) * uDistortionRepeat.x,\n    aTexY * uDistortionRepeat.y\n  );\n}";
+var I = "#version 300 es\nprecision highp float;\n\nin vec2 vDistortionUv;\nin vec2 vUv;\nin float vWindowX;\n\nuniform float uDistortionEnabled;\nuniform float uRepeatTexture;\nuniform float uTextureRows;\nuniform float uTextureRowWidth;\nuniform float uWindowLength;\nuniform sampler2D uDistortionTexture;\nuniform vec2 uDistortionStrength;\nuniform float uStripWidth;\nuniform sampler2D uTexture;\n\nout vec4 outColor;\n\nvoid main() {\n  if (vWindowX < 0.0 || vWindowX > uWindowLength) {\n    discard;\n  }\n\n  vec2 uv = vUv;\n\n  if (uDistortionEnabled > 0.5) {\n    vec2 offset = texture(uDistortionTexture, vDistortionUv).rg * 2.0 - 1.0;\n    uv += offset * uDistortionStrength;\n  }\n\n  float sourceX = uv.x * uStripWidth;\n\n  if (uRepeatTexture > 0.5) {\n    sourceX = mod(mod(sourceX, uStripWidth) + uStripWidth, uStripWidth);\n  } else if (sourceX < 0.0 || sourceX > uStripWidth) {\n    discard;\n  }\n\n  if (uv.y < 0.0 || uv.y > 1.0) {\n    discard;\n  }\n\n  float row = floor(sourceX / uTextureRowWidth);\n\n  if (row < 0.0 || row >= uTextureRows) {\n    discard;\n  }\n\n  float localX = sourceX - row * uTextureRowWidth;\n  vec2 atlasUv = vec2(\n    localX / uTextureRowWidth,\n    (row + uv.y) / uTextureRows\n  );\n\n  outColor = texture(uTexture, atlasUv);\n}", L = "#version 300 es\nprecision highp float;\n\nin vec2 aPosition;\nin float aPathDistance;\nin float aTexY;\n\nuniform vec2 uResolution;\nuniform vec2 uDistortionRepeat;\nuniform float uDistortionScrollMode;\nuniform float uPathLength;\nuniform float uSourceBias;\nuniform float uStripWidth;\nuniform float uTravel;\nuniform float uTravelFactor;\n\nout vec2 vDistortionUv;\nout vec2 vUv;\nout float vWindowX;\n\nvoid main() {\n  vec2 zeroToOne = aPosition / uResolution;\n  vec2 clip = zeroToOne * 2.0 - 1.0;\n  float windowX = aPathDistance + uTravelFactor * uTravel + uSourceBias;\n  float pathUvX = aPathDistance / uPathLength;\n  float textUvX = windowX / uStripWidth;\n\n  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);\n  vUv = vec2(textUvX, aTexY);\n  vWindowX = windowX;\n  vDistortionUv = vec2(\n    mix(pathUvX, textUvX, uDistortionScrollMode) * uDistortionRepeat.x,\n    aTexY * uDistortionRepeat.y\n  );\n}";
 //#endregion
 //#region src/glRenderer.ts
-function P(e) {
-	let t = l(e, c(e, e.VERTEX_SHADER, N), c(e, e.FRAGMENT_SHADER, M)), n = f(e.createBuffer(), "buffer"), r = f(e.createTexture(), "texture"), i = f(e.createTexture(), "distortion texture");
+function R(e) {
+	let t = l(e, c(e, e.VERTEX_SHADER, L), c(e, e.FRAGMENT_SHADER, I)), n = f(e.createBuffer(), "buffer"), r = f(e.createTexture(), "texture"), i = f(e.createTexture(), "distortion texture");
 	return e.useProgram(t), e.enable(e.BLEND), e.disable(e.DEPTH_TEST), e.blendFunc(e.SRC_ALPHA, e.ONE_MINUS_SRC_ALPHA), e.bindTexture(e.TEXTURE_2D, r), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_S, e.REPEAT), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_T, e.CLAMP_TO_EDGE), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MIN_FILTER, e.LINEAR), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MAG_FILTER, e.LINEAR), e.bindTexture(e.TEXTURE_2D, i), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_S, e.REPEAT), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_T, e.REPEAT), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MIN_FILTER, e.LINEAR), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MAG_FILTER, e.LINEAR), {
 		attributes: {
 			pathDistance: d(e, t, "aPathDistance"),
@@ -387,6 +455,8 @@ function P(e) {
 			resolution: u(e, t, "uResolution"),
 			sourceBias: u(e, t, "uSourceBias"),
 			stripWidth: u(e, t, "uStripWidth"),
+			textureRows: u(e, t, "uTextureRows"),
+			textureRowWidth: u(e, t, "uTextureRowWidth"),
 			texture: u(e, t, "uTexture"),
 			travel: u(e, t, "uTravel"),
 			travelFactor: u(e, t, "uTravelFactor"),
@@ -396,26 +466,26 @@ function P(e) {
 		windowLength: 1
 	};
 }
-function F(e, t, n, r, i, a, o, s, c, l) {
+function z(e, t, n, r, i, a, o, s, c, l) {
 	let { gl: u } = e, d = c.enabled && !!l;
-	e.pathLength = r, e.stripWidth = t.cssWidth, e.vertexCount = n.length / 4, e.windowLength = s, u.viewport(0, 0, Math.ceil(i * o), Math.ceil(a * o)), u.useProgram(e.program), u.uniform2f(e.uniforms.resolution, i, a), u.uniform1f(e.uniforms.pathLength, r), u.uniform1f(e.uniforms.stripWidth, t.cssWidth), u.uniform1f(e.uniforms.windowLength, s), u.uniform1i(e.uniforms.texture, 0), u.uniform1i(e.uniforms.distortionSampler, 1), u.uniform1f(e.uniforms.distortionEnabled, +!!d), u.uniform2f(e.uniforms.distortionRepeat, Math.max(.001, c.repeatX), Math.max(.001, c.repeatY)), u.uniform1f(e.uniforms.distortionScrollMode, +!!c.scrollWithText), u.uniform2f(e.uniforms.distortionStrength, c.strengthAlong / t.cssWidth, c.strengthAcross / t.cssHeight), u.bindBuffer(u.ARRAY_BUFFER, e.buffer), u.bufferData(u.ARRAY_BUFFER, n, u.STATIC_DRAW), L(e), u.activeTexture(u.TEXTURE0), u.bindTexture(u.TEXTURE_2D, e.texture), u.pixelStorei(u.UNPACK_FLIP_Y_WEBGL, !1), u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, t.canvas), u.activeTexture(u.TEXTURE1), u.bindTexture(u.TEXTURE_2D, e.distortionTexture), l ? u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, l) : u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, 1, 1, 0, u.RGBA, u.UNSIGNED_BYTE, new Uint8Array([
+	e.pathLength = r, e.stripWidth = t.cssWidth, e.vertexCount = n.length / 4, e.windowLength = s, u.viewport(0, 0, Math.ceil(i * o), Math.ceil(a * o)), u.useProgram(e.program), u.uniform2f(e.uniforms.resolution, i, a), u.uniform1f(e.uniforms.pathLength, r), u.uniform1f(e.uniforms.stripWidth, t.cssWidth), u.uniform1f(e.uniforms.textureRows, t.textureRows), u.uniform1f(e.uniforms.textureRowWidth, t.textureRowWidth), u.uniform1f(e.uniforms.windowLength, s), u.uniform1i(e.uniforms.texture, 0), u.uniform1i(e.uniforms.distortionSampler, 1), u.uniform1f(e.uniforms.distortionEnabled, +!!d), u.uniform2f(e.uniforms.distortionRepeat, Math.max(.001, c.repeatX), Math.max(.001, c.repeatY)), u.uniform1f(e.uniforms.distortionScrollMode, +!!c.scrollWithText), u.uniform2f(e.uniforms.distortionStrength, c.strengthAlong / t.cssWidth, c.strengthAcross / t.cssHeight), u.bindBuffer(u.ARRAY_BUFFER, e.buffer), u.bufferData(u.ARRAY_BUFFER, n, u.STATIC_DRAW), V(e), u.activeTexture(u.TEXTURE0), u.bindTexture(u.TEXTURE_2D, e.texture), u.pixelStorei(u.UNPACK_FLIP_Y_WEBGL, !1), u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, t.canvas), u.activeTexture(u.TEXTURE1), u.bindTexture(u.TEXTURE_2D, e.distortionTexture), l ? u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, l) : u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, 1, 1, 0, u.RGBA, u.UNSIGNED_BYTE, new Uint8Array([
 		128,
 		128,
 		128,
 		255
 	]));
 }
-function I(e, t, n, r) {
+function B(e, t, n, r) {
 	let { gl: i } = e, a = n === "reverse";
-	i.clearColor(0, 0, 0, 0), i.clear(i.COLOR_BUFFER_BIT), i.useProgram(e.program), i.uniform1f(e.uniforms.travel, t), i.uniform1f(e.uniforms.travelFactor, a ? 1 : -1), i.uniform1f(e.uniforms.repeatTexture, +!!r), i.uniform1f(e.uniforms.sourceBias, a ? -e.pathLength : e.windowLength), i.activeTexture(i.TEXTURE0), i.bindTexture(i.TEXTURE_2D, e.texture), i.activeTexture(i.TEXTURE1), i.bindTexture(i.TEXTURE_2D, e.distortionTexture), i.bindBuffer(i.ARRAY_BUFFER, e.buffer), L(e), i.drawArrays(i.TRIANGLES, 0, e.vertexCount);
+	i.clearColor(0, 0, 0, 0), i.clear(i.COLOR_BUFFER_BIT), i.useProgram(e.program), i.uniform1f(e.uniforms.travel, t), i.uniform1f(e.uniforms.travelFactor, a ? 1 : -1), i.uniform1f(e.uniforms.repeatTexture, +!!r), i.uniform1f(e.uniforms.sourceBias, a ? -e.pathLength : e.windowLength), i.activeTexture(i.TEXTURE0), i.bindTexture(i.TEXTURE_2D, e.texture), i.activeTexture(i.TEXTURE1), i.bindTexture(i.TEXTURE_2D, e.distortionTexture), i.bindBuffer(i.ARRAY_BUFFER, e.buffer), V(e), i.drawArrays(i.TRIANGLES, 0, e.vertexCount);
 }
-function L(e) {
+function V(e) {
 	let { gl: t } = e, n = 4 * Float32Array.BYTES_PER_ELEMENT;
 	t.enableVertexAttribArray(e.attributes.position), t.vertexAttribPointer(e.attributes.position, 2, t.FLOAT, !1, n, 0), t.enableVertexAttribArray(e.attributes.pathDistance), t.vertexAttribPointer(e.attributes.pathDistance, 1, t.FLOAT, !1, n, 2 * Float32Array.BYTES_PER_ELEMENT), t.enableVertexAttribArray(e.attributes.texY), t.vertexAttribPointer(e.attributes.texY, 1, t.FLOAT, !1, n, 3 * Float32Array.BYTES_PER_ELEMENT);
 }
 //#endregion
 //#region src/EdgeTicker.ts
-var R = class {
+var H = class {
 	canvas;
 	gl;
 	renderer;
@@ -427,7 +497,7 @@ var R = class {
 	onResize = () => this.rebuildLayout();
 	onScroll = () => this.requestDraw();
 	constructor(n, r = {}) {
-		this.canvas = a(n), this.gl = s(this.canvas), this.renderer = P(this.gl), this.options = t(e, r), this.start();
+		this.canvas = a(n), this.gl = s(this.canvas), this.renderer = R(this.gl), this.options = t(e, r), this.start();
 	}
 	getOptions() {
 		return this.options;
@@ -442,15 +512,15 @@ var R = class {
 		this.destroyed || (this.destroyed = !0, window.removeEventListener("resize", this.onResize), window.removeEventListener("scroll", this.onScroll));
 	}
 	async start() {
-		await A(this.options.font), this.distortionTextureSource = await j(this.options.distortion), !this.destroyed && (this.rebuildLayout(), window.addEventListener("resize", this.onResize), window.addEventListener("scroll", this.onScroll, { passive: !0 }), this.requestDraw());
+		await P(this.options.font), this.distortionTextureSource = await F(this.options.distortion), !this.destroyed && (this.rebuildLayout(), window.addEventListener("resize", this.onResize), window.addEventListener("scroll", this.onScroll, { passive: !0 }), this.requestDraw());
 	}
 	async reload() {
-		await A(this.options.font), this.distortionTextureSource = await j(this.options.distortion), !this.destroyed && this.rebuildLayout();
+		await P(this.options.font), this.distortionTextureSource = await F(this.options.distortion), !this.destroyed && this.rebuildLayout();
 	}
 	rebuildLayout() {
 		if (this.destroyed) return;
-		let e = this.options, t = window.innerWidth, n = window.innerHeight, r = Math.min(window.devicePixelRatio || 1, 2), i = S(e, r), a = this.resolveOverscan(e, i), o = p(t, n, e, a.path), s = e.repeatTexture ? i.cssWidth * Math.max(.01, e.repeatWindowCopies) : i.cssWidth, c = _(o, i, e), l = this.getWindowVisibleBounds(s, i), u = e.direction === "reverse" ? l.start + a.inside.start : s - l.end + a.inside.start, d = e.direction === "reverse" ? o.length + l.end - a.inside.end : o.length + s - l.start - a.inside.end, f = Math.max(1, d - u), m = Math.max(0, e.scrollLaps), h = this.resolveScrollPadding(e, f), g = Math.max(1, f + h.start + h.end);
-		this.canvas.width = Math.ceil(t * r), this.canvas.height = Math.ceil(n * r), this.canvas.style.width = `${t}px`, this.canvas.style.height = `${n}px`, F(this.renderer, i, c, o.length, t, n, r, s, e.distortion, this.distortionTextureSource), this.layoutState = {
+		let e = this.options, t = window.innerWidth, n = window.innerHeight, r = Math.min(window.devicePixelRatio || 1, 2), i = S(e, r, this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE)), a = this.resolveOverscan(e, i), o = p(t, n, e, a.path), s = e.repeatTexture ? i.cssWidth * Math.max(.01, e.repeatWindowCopies) : i.cssWidth, c = _(o, i, e), l = this.getWindowVisibleBounds(s, i), u = e.direction === "reverse" ? l.start + a.inside.start : s - l.end + a.inside.start, d = e.direction === "reverse" ? o.length + l.end - a.inside.end : o.length + s - l.start - a.inside.end, f = Math.max(1, d - u), m = Math.max(0, e.scrollLaps), h = this.resolveScrollPadding(e, f), g = Math.max(1, f + h.start + h.end);
+		this.canvas.width = Math.ceil(t * r), this.canvas.height = Math.ceil(n * r), this.canvas.style.width = `${t}px`, this.canvas.style.height = `${n}px`, z(this.renderer, i, c, o.length, t, n, r, s, e.distortion, this.distortionTextureSource), this.layoutState = {
 			activeTravelDistance: f,
 			direction: e.direction,
 			lapCount: m,
@@ -493,7 +563,7 @@ var R = class {
 	drawTicker() {
 		if (!this.layoutState || this.destroyed) return;
 		let { activeTravelDistance: e, direction: t, lapCount: n, repeatTexture: r, scrollPaddingStart: a, travelDistance: o, travelOffset: s } = this.layoutState, c = Math.max(1, this.getMaxScrollDistance()), l = i((i(window.scrollY / c, 0, 1) * o - a) / e, 0, 1) * e * n, u = this.getLoopedTravel(l, e);
-		I(this.renderer, u + s, t, r);
+		B(this.renderer, u + s, t, r);
 	}
 	getLoopedTravel(e, t) {
 		if (e <= 0) return 0;
@@ -515,8 +585,8 @@ var R = class {
 		return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
 	}
 };
-function z(e, t = {}) {
-	return new R(e, t);
+function U(e, t = {}) {
+	return new H(e, t);
 }
 //#endregion
-export { R as EdgeTicker, z as createEdgeTicker, e as defaultOptions, t as resolveOptions };
+export { H as EdgeTicker, U as createEdgeTicker, e as defaultOptions, t as resolveOptions };

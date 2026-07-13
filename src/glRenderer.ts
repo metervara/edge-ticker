@@ -34,6 +34,8 @@ export type WebGLTickerRenderer = {
     resolution: WebGLUniformLocation;
     sourceBias: WebGLUniformLocation;
     stripWidth: WebGLUniformLocation;
+    textureRows: WebGLUniformLocation;
+    textureRowWidth: WebGLUniformLocation;
     texture: WebGLUniformLocation;
     travel: WebGLUniformLocation;
     travelFactor: WebGLUniformLocation;
@@ -103,6 +105,8 @@ export function createWebGLTickerRenderer(
       resolution: requireUniform(glContext, program, "uResolution"),
       sourceBias: requireUniform(glContext, program, "uSourceBias"),
       stripWidth: requireUniform(glContext, program, "uStripWidth"),
+      textureRows: requireUniform(glContext, program, "uTextureRows"),
+      textureRowWidth: requireUniform(glContext, program, "uTextureRowWidth"),
       texture: requireUniform(glContext, program, "uTexture"),
       travel: requireUniform(glContext, program, "uTravel"),
       travelFactor: requireUniform(glContext, program, "uTravelFactor"),
@@ -138,6 +142,8 @@ export function updateWebGLTickerRenderer(
   glContext.uniform2f(target.uniforms.resolution, cssWidth, cssHeight);
   glContext.uniform1f(target.uniforms.pathLength, pathLength);
   glContext.uniform1f(target.uniforms.stripWidth, strip.cssWidth);
+  glContext.uniform1f(target.uniforms.textureRows, strip.textureRows);
+  glContext.uniform1f(target.uniforms.textureRowWidth, strip.textureRowWidth);
   glContext.uniform1f(target.uniforms.windowLength, windowLength);
   glContext.uniform1i(target.uniforms.texture, 0);
   glContext.uniform1i(target.uniforms.distortionSampler, 1);

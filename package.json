@@ -1,6 +1,6 @@
 {
   "name": "@metervara/edge-ticker",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Scroll-linked WebGL ticker that maps styled text around the viewport edge",
   "author": "Metervara / Patrik Svensson",
   "license": "MIT",

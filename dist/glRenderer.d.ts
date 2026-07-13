@@ -25,6 +25,8 @@ export type WebGLTickerRenderer = {
         resolution: WebGLUniformLocation;
         sourceBias: WebGLUniformLocation;
         stripWidth: WebGLUniformLocation;
+        textureRows: WebGLUniformLocation;
+        textureRowWidth: WebGLUniformLocation;
         texture: WebGLUniformLocation;
         travel: WebGLUniformLocation;
         travelFactor: WebGLUniformLocation;

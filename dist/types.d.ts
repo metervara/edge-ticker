@@ -63,6 +63,7 @@ export type EdgePadding = number | {
 };
 export type TickerOptions = {
     backgroundPaddingX: number;
+    backgroundPaddingY: number;
     backgroundRadius: number;
     font: TickerFont;
     letterSpacing: number;

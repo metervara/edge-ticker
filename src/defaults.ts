@@ -3,6 +3,7 @@ import type { EdgePadding, PartialTickerOptions, TickerOptions } from "./types";
 export const defaultOptions: TickerOptions = {
   // Text rendering
   backgroundPaddingX: 12,
+  backgroundPaddingY: 6,
   backgroundRadius: 7,
   font: {
     family: "EdgeTickerSans",

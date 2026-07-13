@@ -7,56 +7,95 @@ export type TextStrip = {
   cssWidth: number;
   midline: number;
   scale: number;
+  textureRows: number;
+  textureRowWidth: number;
   visibleEnd: number;
   visibleStart: number;
 };
 
-export function renderTextStrip(options: TickerOptions, dpr: number): TextStrip {
+type FontMetrics = {
+  ascent: number;
+  baseline: number;
+  descent: number;
+};
+
+type LaidOutGlyph = {
+  advance: number;
+  glyph: string;
+  localX: number;
+  logicalEnd: number;
+  logicalStart: number;
+  row: number;
+  run: TickerRun;
+  visible: boolean;
+  width: number;
+};
+
+type LaidOutSegment = {
+  end: number;
+  row: number;
+  run: TickerRun;
+  start: number;
+};
+
+type TextLayout = {
+  backgroundSegments: LaidOutSegment[];
+  cssWidth: number;
+  glyphs: LaidOutGlyph[];
+  rowCount: number;
+  rowWidth: number;
+  underlineSegments: LaidOutSegment[];
+  visibleEnd: number;
+  visibleStart: number;
+};
+
+export function renderTextStrip(
+  options: TickerOptions,
+  dpr: number,
+  maxTextureSize = 8192,
+): TextStrip {
   const scale = Math.min(dpr, 2);
   const measureCanvas = document.createElement("canvas");
   const measureContext = get2dContext(measureCanvas);
-  const runWidths = options.runs.map((run) =>
-    measureRun(measureContext, run, options),
+  const fullWidth = Math.ceil(measureFullWidth(measureContext, options));
+  const maxTextureCssWidth = Math.max(1, Math.floor(maxTextureSize / scale));
+  const layout = layoutText(
+    measureContext,
+    options,
+    Math.min(fullWidth, maxTextureCssWidth),
   );
-  const cssWidth = Math.ceil(
-    runWidths.reduce((total, width) => total + width, 0) +
-      options.stripPaddingX * 2,
-  );
+  const metrics = measureFontMetrics(measureContext, options.font, options);
+  const cssWidth = Math.ceil(layout.cssWidth);
   const cssHeight = Math.ceil(options.font.lineHeight + options.stripPaddingY * 2);
+  const textureRowWidth = Math.ceil(layout.rowWidth);
+  const textureRows = layout.rowCount;
   const stripCanvas = document.createElement("canvas");
   const stripContext = get2dContext(stripCanvas);
 
-  stripCanvas.width = Math.ceil(cssWidth * scale);
-  stripCanvas.height = Math.ceil(cssHeight * scale);
+  stripCanvas.width = Math.ceil(textureRowWidth * scale);
+  stripCanvas.height = Math.ceil(cssHeight * textureRows * scale);
   stripContext.scale(scale, scale);
   stripContext.textBaseline = "alphabetic";
   stripContext.imageSmoothingEnabled = true;
   stripContext.imageSmoothingQuality = "high";
-  measureContext.font = getCanvasFont(options.font);
 
-  const metrics = measureContext.measureText("Hg");
-  const ascent = metrics.actualBoundingBoxAscent || options.font.size * 0.78;
-  const descent = metrics.actualBoundingBoxDescent || options.font.size * 0.22;
-  const baseline =
-    options.stripPaddingY +
-    (options.font.lineHeight - ascent - descent) / 2 +
-    ascent;
-  let cursor = options.stripPaddingX;
-
-  options.runs.forEach((run, index) => {
-    const width = runWidths[index] ?? 0;
-
+  options.runs.forEach((run) => {
     if (run.background) {
-      drawRoundedRect(
-        stripContext,
-        cursor - options.backgroundPaddingX,
-        options.stripPaddingY - 6,
-        width + options.backgroundPaddingX * 2,
-        options.font.lineHeight + 12,
-        options.backgroundRadius,
+      const backgroundSegments = mergeSegments(
+        layout.backgroundSegments.filter((segment) => segment.run === run),
       );
-      stripContext.fillStyle = run.background;
-      stripContext.fill();
+      const runMetrics = measureFontMetrics(measureContext, options.font, options, run);
+
+      backgroundSegments.forEach((segment) => {
+        drawBackgroundSegment(
+          stripContext,
+          segment,
+          runMetrics,
+          cssHeight,
+          options,
+          run.background as string,
+        );
+      });
     }
 
     stripContext.font = getCanvasFont(options.font, run);
@@ -64,28 +103,31 @@ export function renderTextStrip(options: TickerOptions, dpr: number): TextStrip 
     stripContext.globalCompositeOperation = run.punchOut
       ? "destination-out"
       : "source-over";
-    drawTrackedText(
-      stripContext,
-      run.text,
-      cursor,
-      baseline,
-      run.tracking ?? options.letterSpacing,
-    );
+    layout.glyphs
+      .filter((glyph) => glyph.run === run)
+      .forEach((glyph) => {
+        stripContext.fillText(
+          glyph.glyph,
+          glyph.localX,
+          glyph.row * cssHeight + metrics.baseline,
+        );
+      });
 
     if (run.underline) {
-      stripContext.strokeStyle = run.fill || "#111111";
-      stripContext.lineWidth = Math.max(2, options.font.size * 0.07);
-      stripContext.beginPath();
-      stripContext.moveTo(cursor, baseline + options.font.size * 0.14);
-      stripContext.lineTo(cursor + width, baseline + options.font.size * 0.14);
-      stripContext.stroke();
+      drawUnderlineSegments(
+        stripContext,
+        mergeSegments(
+          layout.underlineSegments.filter((segment) => segment.run === run),
+        ),
+        metrics,
+        cssHeight,
+        options,
+        run.fill || "#111111",
+      );
     }
 
     stripContext.globalCompositeOperation = "source-over";
-    cursor += width;
   });
-
-  const visibleBounds = getAlphaXBounds(stripCanvas, scale);
 
   return {
     canvas: stripCanvas,
@@ -93,41 +135,126 @@ export function renderTextStrip(options: TickerOptions, dpr: number): TextStrip 
     cssWidth,
     midline: cssHeight / 2,
     scale,
-    visibleEnd: visibleBounds.end,
-    visibleStart: visibleBounds.start,
+    textureRows,
+    textureRowWidth,
+    visibleEnd: layout.visibleEnd,
+    visibleStart: layout.visibleStart,
   };
 }
 
-function getAlphaXBounds(canvasElement: HTMLCanvasElement, scale: number) {
-  const context = get2dContext(canvasElement);
-  const imageData = context.getImageData(
-    0,
-    0,
-    canvasElement.width,
-    canvasElement.height,
+function measureFullWidth(
+  context: CanvasRenderingContext2D,
+  options: TickerOptions,
+) {
+  return (
+    options.stripPaddingX * 2 +
+    options.runs.reduce(
+      (total, run) =>
+        total +
+        measureRun(context, run, options),
+      0,
+    )
   );
-  const { data, height, width } = imageData;
-  let left = width;
-  let right = -1;
+}
 
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const alpha = data[(y * width + x) * 4 + 3];
+function layoutText(
+  context: CanvasRenderingContext2D,
+  options: TickerOptions,
+  rowWidth: number,
+): TextLayout {
+  const glyphs: LaidOutGlyph[] = [];
+  const backgroundSegments: LaidOutSegment[] = [];
+  const underlineSegments: LaidOutSegment[] = [];
+  let cursor = options.stripPaddingX;
+  let visibleStart = Number.POSITIVE_INFINITY;
+  let visibleEnd = Number.NEGATIVE_INFINITY;
 
-      if (alpha > 0) {
-        left = Math.min(left, x);
-        right = Math.max(right, x);
-      }
-    }
+  function markVisible(start: number, end: number) {
+    visibleStart = Math.min(visibleStart, start);
+    visibleEnd = Math.max(visibleEnd, end);
   }
 
-  if (right < left) {
-    return { end: canvasElement.width / scale, start: 0 };
+  options.runs.forEach((run) => {
+    const tracking = run.tracking ?? options.letterSpacing;
+    const runGlyphs = Array.from(run.text);
+
+    context.font = getCanvasFont(options.font, run);
+
+    runGlyphs.forEach((glyph, index) => {
+      const width = context.measureText(glyph).width;
+      const gap = index < runGlyphs.length - 1 ? tracking : 0;
+      const advance = width + gap;
+      const rowStart = Math.floor(cursor / rowWidth) * rowWidth;
+      const localX = cursor - rowStart;
+
+      if (localX > 0 && localX + Math.max(width, advance) > rowWidth) {
+        cursor = rowStart + rowWidth;
+      }
+
+      const row = Math.floor(cursor / rowWidth);
+      const logicalStart = cursor;
+      const localStart = cursor - row * rowWidth;
+      const logicalEnd = cursor + advance;
+      const visible = glyph.trim().length > 0;
+      const laidOutGlyph = {
+        advance,
+        glyph,
+        localX: localStart,
+        logicalEnd,
+        logicalStart,
+        row,
+        run,
+        visible,
+        width,
+      };
+
+      glyphs.push(laidOutGlyph);
+
+      if (run.background && advance > 0) {
+        backgroundSegments.push({
+          end: localStart + advance,
+          row,
+          run,
+          start: localStart,
+        });
+        markVisible(logicalStart, logicalEnd);
+      } else if (visible && width > 0) {
+        markVisible(logicalStart, logicalStart + width);
+      }
+
+      if (run.underline && advance > 0) {
+        underlineSegments.push({
+          end: localStart + advance,
+          row,
+          run,
+          start: localStart,
+        });
+        markVisible(logicalStart, logicalEnd);
+      }
+
+      cursor += advance;
+    });
+  });
+
+  cursor += options.stripPaddingX;
+
+  const cssWidth = Math.max(1, cursor);
+  const rowCount = Math.max(1, Math.ceil(cssWidth / rowWidth));
+
+  if (!Number.isFinite(visibleStart) || !Number.isFinite(visibleEnd)) {
+    visibleStart = 0;
+    visibleEnd = cssWidth;
   }
 
   return {
-    end: (right + 1) / scale,
-    start: left / scale,
+    backgroundSegments,
+    cssWidth,
+    glyphs,
+    rowCount,
+    rowWidth,
+    underlineSegments,
+    visibleEnd,
+    visibleStart,
   };
 }
 
@@ -142,6 +269,28 @@ function measureRun(
     run.text,
     run.tracking ?? options.letterSpacing,
   );
+}
+
+function measureFontMetrics(
+  context: CanvasRenderingContext2D,
+  font: TickerFont,
+  options: TickerOptions,
+  run?: TickerRun,
+): FontMetrics {
+  context.font = getCanvasFont(font, run);
+
+  const metrics = context.measureText("Hg");
+  const ascent = metrics.actualBoundingBoxAscent || font.size * 0.78;
+  const descent = metrics.actualBoundingBoxDescent || font.size * 0.22;
+
+  return {
+    ascent,
+    baseline:
+      options.stripPaddingY +
+      (font.lineHeight - ascent - descent) / 2 +
+      ascent,
+    descent,
+  };
 }
 
 function getCanvasFont(font: TickerFont, run?: TickerRun) {
@@ -168,22 +317,75 @@ function measureTrackedText(
   }, 0);
 }
 
-function drawTrackedText(
-  context: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  tracking: number,
-) {
-  let cursor = x;
+function mergeSegments(segments: LaidOutSegment[]) {
+  const sorted = [...segments].sort((a, b) =>
+    a.row === b.row ? a.start - b.start : a.row - b.row,
+  );
+  const merged: LaidOutSegment[] = [];
 
-  Array.from(text).forEach((glyph, index, glyphs) => {
-    context.fillText(glyph, cursor, y);
-    cursor += context.measureText(glyph).width;
+  sorted.forEach((segment) => {
+    const previous = merged.at(-1);
 
-    if (index < glyphs.length - 1) {
-      cursor += tracking;
+    if (
+      previous &&
+      previous.run === segment.run &&
+      previous.row === segment.row &&
+      segment.start <= previous.end + 0.1
+    ) {
+      previous.end = Math.max(previous.end, segment.end);
+      return;
     }
+
+    merged.push({ ...segment });
+  });
+
+  return merged;
+}
+
+function drawBackgroundSegment(
+  context: CanvasRenderingContext2D,
+  segment: LaidOutSegment,
+  metrics: FontMetrics,
+  rowHeight: number,
+  options: TickerOptions,
+  fill: string,
+) {
+  const y =
+    segment.row * rowHeight +
+    metrics.baseline -
+    metrics.ascent -
+    options.backgroundPaddingY;
+
+  drawRoundedRect(
+    context,
+    segment.start - options.backgroundPaddingX,
+    y,
+    segment.end - segment.start + options.backgroundPaddingX * 2,
+    metrics.ascent + metrics.descent + options.backgroundPaddingY * 2,
+    options.backgroundRadius,
+  );
+  context.fillStyle = fill;
+  context.fill();
+}
+
+function drawUnderlineSegments(
+  context: CanvasRenderingContext2D,
+  segments: LaidOutSegment[],
+  metrics: FontMetrics,
+  rowHeight: number,
+  options: TickerOptions,
+  stroke: string,
+) {
+  context.strokeStyle = stroke;
+  context.lineWidth = Math.max(2, options.font.size * 0.07);
+
+  segments.forEach((segment) => {
+    const y = segment.row * rowHeight + metrics.baseline + options.font.size * 0.14;
+
+    context.beginPath();
+    context.moveTo(segment.start, y);
+    context.lineTo(segment.end, y);
+    context.stroke();
   });
 }
 

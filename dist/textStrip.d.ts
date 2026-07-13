@@ -6,9 +6,11 @@ export type TextStrip = {
     cssWidth: number;
     midline: number;
     scale: number;
+    textureRows: number;
+    textureRowWidth: number;
     visibleEnd: number;
     visibleStart: number;
 };
-export declare function renderTextStrip(options: TickerOptions, dpr: number): TextStrip;
+export declare function renderTextStrip(options: TickerOptions, dpr: number, maxTextureSize?: number): TextStrip;
 /** Load an optional custom font face used by the ticker text. */
 export declare function loadTickerFont(font: TickerFont): Promise<void>;
