@@ -61,6 +61,7 @@ function t(e, t = {}) {
 	return {
 		...e,
 		...t,
+		edgePadding: n(e.edgePadding, t.edgePadding),
 		font: {
 			...e.font,
 			...t.font
@@ -80,23 +81,48 @@ function t(e, t = {}) {
 		runs: t.runs ?? e.runs
 	};
 }
-//#endregion
-//#region src/utils.ts
-function n(e, t, n) {
-	return Math.min(n, Math.max(t, e));
+function n(e, t) {
+	if (t === void 0 || typeof t == "number") return t ?? e;
+	let n = r(e), i = t.x, a = t.y;
+	return {
+		top: t.top ?? a ?? n.top,
+		right: t.right ?? i ?? n.right,
+		bottom: t.bottom ?? a ?? n.bottom,
+		left: t.left ?? i ?? n.left
+	};
 }
 function r(e) {
+	if (typeof e == "number") return {
+		top: e,
+		right: e,
+		bottom: e,
+		left: e
+	};
+	let t = e.x ?? 0, n = e.y ?? 0;
+	return {
+		top: e.top ?? n,
+		right: e.right ?? t,
+		bottom: e.bottom ?? n,
+		left: e.left ?? t
+	};
+}
+//#endregion
+//#region src/utils.ts
+function i(e, t, n) {
+	return Math.min(n, Math.max(t, e));
+}
+function a(e) {
 	if (typeof e != "string") return e;
 	let t = document.querySelector(e);
 	if (!t) throw Error(`Missing required element: ${e}`);
 	return t;
 }
-function i(e) {
+function o(e) {
 	let t = e.getContext("2d");
 	if (!t) throw Error("Could not create 2D canvas context");
 	return t;
 }
-function a(e) {
+function s(e) {
 	let t = e.getContext("webgl2", {
 		alpha: !0,
 		antialias: !0,
@@ -105,55 +131,70 @@ function a(e) {
 	if (!t) throw Error("Could not create WebGL2 context");
 	return t;
 }
-function o(e, t, n) {
-	let r = u(e.createShader(t), "shader");
+function c(e, t, n) {
+	let r = f(e.createShader(t), "shader");
 	if (e.shaderSource(r, n), e.compileShader(r), !e.getShaderParameter(r, e.COMPILE_STATUS)) {
 		let t = e.getShaderInfoLog(r) || "Unknown shader error";
 		throw e.deleteShader(r), Error(t);
 	}
 	return r;
 }
-function s(e, t, n) {
-	let r = u(e.createProgram(), "program");
+function l(e, t, n) {
+	let r = f(e.createProgram(), "program");
 	if (e.attachShader(r, t), e.attachShader(r, n), e.linkProgram(r), !e.getProgramParameter(r, e.LINK_STATUS)) {
 		let t = e.getProgramInfoLog(r) || "Unknown program link error";
 		throw e.deleteProgram(r), Error(t);
 	}
 	return e.deleteShader(t), e.deleteShader(n), r;
 }
-function c(e, t, n) {
+function u(e, t, n) {
 	let r = e.getUniformLocation(t, n);
 	if (!r) throw Error(`Missing WebGL uniform: ${n}`);
 	return r;
 }
-function l(e, t, n) {
+function d(e, t, n) {
 	let r = e.getAttribLocation(t, n);
 	if (r < 0) throw Error(`Missing WebGL attribute: ${n}`);
 	return r;
 }
-function u(e, t) {
+function f(e, t) {
 	if (!e) throw Error(`Could not create WebGL ${t}`);
 	return e;
 }
 //#endregion
 //#region src/geometry.ts
-function d(e, t, r, i) {
-	let a = r.font.lineHeight + r.stripPaddingY * 2, o = r.edgePadding + a / 2, s = o, c = o, l = e - o, u = t - o, d = n(r.cornerRadius, 12, Math.max(12, Math.min((l - s) / 2, (u - c) / 2) - 1)), m = [
-		f(l, -i.start, l, u - d),
-		p(l - d, u - d, d, 0, Math.PI / 2),
-		f(l - d, u, s + d, u),
-		p(s + d, u - d, d, Math.PI / 2, Math.PI),
-		f(s, u - d, s, c + d),
-		p(s + d, c + d, d, Math.PI, Math.PI * 1.5),
-		f(s + d, c, e + i.end, c)
+function p(e, t, n, r) {
+	let a = n.font.lineHeight + n.stripPaddingY * 2, o = m(n.edgePadding), s = a / 2, c = o.left + s, l = o.top + s, u = e - o.right - s, d = t - o.bottom - s, f = i(n.cornerRadius, 12, Math.max(12, Math.min((u - c) / 2, (d - l) / 2) - 1)), p = [
+		h(u, -r.start, u, d - f),
+		g(u - f, d - f, f, 0, Math.PI / 2),
+		h(u - f, d, c + f, d),
+		g(c + f, d - f, f, Math.PI / 2, Math.PI),
+		h(c, d - f, c, l + f),
+		g(c + f, l + f, f, Math.PI, Math.PI * 1.5),
+		h(c + f, l, e + r.end, l)
 	];
 	return {
-		length: m.reduce((e, t) => e + t.length, 0),
-		segments: m
+		length: p.reduce((e, t) => e + t.length, 0),
+		segments: p
 	};
 }
-function f(e, t, n, r, i) {
-	let a = n - e, o = r - t, s = Math.hypot(a, o), c = a / s, l = o / s, u = i ? v(i.x, i.y) : {
+function m(e) {
+	if (typeof e == "number") return {
+		top: e,
+		right: e,
+		bottom: e,
+		left: e
+	};
+	let t = e.x ?? 0, n = e.y ?? 0;
+	return {
+		top: e.top ?? n,
+		right: e.right ?? t,
+		bottom: e.bottom ?? n,
+		left: e.left ?? t
+	};
+}
+function h(e, t, n, r, i) {
+	let a = n - e, o = r - t, s = Math.hypot(a, o), c = a / s, l = o / s, u = i ? x(i.x, i.y) : {
 		x: -l,
 		y: c
 	};
@@ -170,7 +211,7 @@ function f(e, t, n, r, i) {
 		y2: r
 	};
 }
-function p(e, t, n, r, i) {
+function g(e, t, n, r, i) {
 	let a = i - r;
 	return {
 		kind: "arc",
@@ -183,18 +224,18 @@ function p(e, t, n, r, i) {
 		startAngle: r
 	};
 }
-function m(e, t, n) {
-	let r = h(e, n.columnStep), i = Math.max(2, Math.ceil(t.cssHeight / n.rowStep)), a = [];
+function _(e, t, n) {
+	let r = v(e, n.columnStep), i = Math.max(2, Math.ceil(t.cssHeight / n.rowStep)), a = [];
 	for (let e = 0; e < r.length - 1; e += 1) {
 		let n = r[e], o = r[e + 1];
 		for (let e = 0; e < i; e += 1) {
 			let r = e / i * t.cssHeight, s = (e + 1) / i * t.cssHeight;
-			g(a, n, r, t), g(a, o, r, t), g(a, n, s, t), g(a, n, s, t), g(a, o, r, t), g(a, o, s, t);
+			y(a, n, r, t), y(a, o, r, t), y(a, n, s, t), y(a, n, s, t), y(a, o, r, t), y(a, o, s, t);
 		}
 	}
 	return new Float32Array(a);
 }
-function h(e, t) {
+function v(e, t) {
 	let n = [], r = 0;
 	return e.segments.forEach((e) => {
 		let i = e.kind === "arc" ? Math.max(1, Math.ceil(e.length / t)) : 1;
@@ -203,17 +244,17 @@ function h(e, t) {
 			let a = e.length * t / i;
 			n.push({
 				pathDistance: r + a,
-				sample: _(e, a)
+				sample: b(e, a)
 			});
 		}
 		r += e.length;
 	}), n;
 }
-function g(e, t, n, r) {
+function y(e, t, n, r) {
 	let i = n - r.midline;
 	e.push(t.sample.x + t.sample.nx * i, t.sample.y + t.sample.ny * i, t.pathDistance, n / r.cssHeight);
 }
-function _(e, t) {
+function b(e, t) {
 	if (e.kind === "line") return {
 		nx: e.nx,
 		ny: e.ny,
@@ -233,7 +274,7 @@ function _(e, t) {
 		y: e.centerY + Math.sin(n) * e.radius
 	};
 }
-function v(e, t) {
+function x(e, t) {
 	let n = Math.hypot(e, t);
 	return {
 		x: e / n,
@@ -242,63 +283,63 @@ function v(e, t) {
 }
 //#endregion
 //#region src/textStrip.ts
-function y(e, t) {
-	let n = Math.min(t, 2), r = i(document.createElement("canvas")), a = e.runs.map((t) => x(r, t, e)), o = Math.ceil(a.reduce((e, t) => e + t, 0) + e.stripPaddingX * 2), s = Math.ceil(e.font.lineHeight + e.stripPaddingY * 2), c = document.createElement("canvas"), l = i(c);
-	c.width = Math.ceil(o * n), c.height = Math.ceil(s * n), l.scale(n, n), l.textBaseline = "alphabetic", l.imageSmoothingEnabled = !0, l.imageSmoothingQuality = "high", r.font = S(e.font);
+function S(e, t) {
+	let n = Math.min(t, 2), r = o(document.createElement("canvas")), i = e.runs.map((t) => w(r, t, e)), a = Math.ceil(i.reduce((e, t) => e + t, 0) + e.stripPaddingX * 2), s = Math.ceil(e.font.lineHeight + e.stripPaddingY * 2), c = document.createElement("canvas"), l = o(c);
+	c.width = Math.ceil(a * n), c.height = Math.ceil(s * n), l.scale(n, n), l.textBaseline = "alphabetic", l.imageSmoothingEnabled = !0, l.imageSmoothingQuality = "high", r.font = T(e.font);
 	let u = r.measureText("Hg"), d = u.actualBoundingBoxAscent || e.font.size * .78, f = u.actualBoundingBoxDescent || e.font.size * .22, p = e.stripPaddingY + (e.font.lineHeight - d - f) / 2 + d, m = e.stripPaddingX;
 	e.runs.forEach((t, n) => {
-		let r = a[n] ?? 0;
-		t.background && (E(l, m - e.backgroundPaddingX, e.stripPaddingY - 6, r + e.backgroundPaddingX * 2, e.font.lineHeight + 12, e.backgroundRadius), l.fillStyle = t.background, l.fill()), l.font = S(e.font, t), l.fillStyle = t.fill || "#111111", l.globalCompositeOperation = t.punchOut ? "destination-out" : "source-over", T(l, t.text, m, p, t.tracking ?? e.letterSpacing), t.underline && (l.strokeStyle = t.fill || "#111111", l.lineWidth = Math.max(2, e.font.size * .07), l.beginPath(), l.moveTo(m, p + e.font.size * .14), l.lineTo(m + r, p + e.font.size * .14), l.stroke()), l.globalCompositeOperation = "source-over", m += r;
+		let r = i[n] ?? 0;
+		t.background && (k(l, m - e.backgroundPaddingX, e.stripPaddingY - 6, r + e.backgroundPaddingX * 2, e.font.lineHeight + 12, e.backgroundRadius), l.fillStyle = t.background, l.fill()), l.font = T(e.font, t), l.fillStyle = t.fill || "#111111", l.globalCompositeOperation = t.punchOut ? "destination-out" : "source-over", O(l, t.text, m, p, t.tracking ?? e.letterSpacing), t.underline && (l.strokeStyle = t.fill || "#111111", l.lineWidth = Math.max(2, e.font.size * .07), l.beginPath(), l.moveTo(m, p + e.font.size * .14), l.lineTo(m + r, p + e.font.size * .14), l.stroke()), l.globalCompositeOperation = "source-over", m += r;
 	});
-	let h = b(c, n);
+	let h = C(c, n);
 	return {
 		canvas: c,
 		cssHeight: s,
-		cssWidth: o,
+		cssWidth: a,
 		midline: s / 2,
 		scale: n,
 		visibleEnd: h.end,
 		visibleStart: h.start
 	};
 }
-function b(e, t) {
-	let { data: n, height: r, width: a } = i(e).getImageData(0, 0, e.width, e.height), o = a, s = -1;
-	for (let e = 0; e < r; e += 1) for (let t = 0; t < a; t += 1) n[(e * a + t) * 4 + 3] > 0 && (o = Math.min(o, t), s = Math.max(s, t));
-	return s < o ? {
+function C(e, t) {
+	let { data: n, height: r, width: i } = o(e).getImageData(0, 0, e.width, e.height), a = i, s = -1;
+	for (let e = 0; e < r; e += 1) for (let t = 0; t < i; t += 1) n[(e * i + t) * 4 + 3] > 0 && (a = Math.min(a, t), s = Math.max(s, t));
+	return s < a ? {
 		end: e.width / t,
 		start: 0
 	} : {
 		end: (s + 1) / t,
-		start: o / t
+		start: a / t
 	};
 }
-function x(e, t, n) {
-	return e.font = S(n.font, t), w(e, t.text, t.tracking ?? n.letterSpacing);
+function w(e, t, n) {
+	return e.font = T(n.font, t), D(e, t.text, t.tracking ?? n.letterSpacing);
 }
-function S(e, t) {
-	return `${t?.fontStyle ?? e.style} ${t?.fontWeight ?? e.weight} ${e.size}px ${C(e.family)}, ${e.fallback}`;
+function T(e, t) {
+	return `${t?.fontStyle ?? e.style} ${t?.fontWeight ?? e.weight} ${e.size}px ${E(e.family)}, ${e.fallback}`;
 }
-function C(e) {
+function E(e) {
 	return e.includes(" ") ? `"${e}"` : e;
 }
-function w(e, t, n) {
+function D(e, t, n) {
 	let r = Array.from(t);
 	return r.reduce((t, i, a) => {
 		let o = a < r.length - 1 ? n : 0;
 		return t + e.measureText(i).width + o;
 	}, 0);
 }
-function T(e, t, n, r, i) {
+function O(e, t, n, r, i) {
 	let a = n;
 	Array.from(t).forEach((t, n, o) => {
 		e.fillText(t, a, r), a += e.measureText(t).width, n < o.length - 1 && (a += i);
 	});
 }
-function E(e, t, n, r, i, a) {
+function k(e, t, n, r, i, a) {
 	let o = Math.min(a, r / 2, i / 2);
 	e.beginPath(), e.moveTo(t + o, n), e.lineTo(t + r - o, n), e.quadraticCurveTo(t + r, n, t + r, n + o), e.lineTo(t + r, n + i - o), e.quadraticCurveTo(t + r, n + i, t + r - o, n + i), e.lineTo(t + o, n + i), e.quadraticCurveTo(t, n + i, t, n + i - o), e.lineTo(t, n + o), e.quadraticCurveTo(t, n, t + o, n), e.closePath();
 }
-async function D(e) {
+async function A(e) {
 	if (e.url) {
 		let t = new FontFace(e.family, `url(${e.url})`, {
 			style: e.style,
@@ -310,23 +351,23 @@ async function D(e) {
 }
 //#endregion
 //#region src/distortion.ts
-async function O(e) {
+async function j(e) {
 	if (!e.textureUrl) return;
 	let t = new Image();
 	return t.crossOrigin = "anonymous", t.decoding = "async", t.src = e.textureUrl, await t.decode(), t;
 }
 //#endregion
 //#region src/shaders/edge-ticker.frag.glsl
-var k = "#version 300 es\nprecision highp float;\n\nin vec2 vDistortionUv;\nin vec2 vUv;\nin float vWindowX;\n\nuniform float uDistortionEnabled;\nuniform float uRepeatTexture;\nuniform float uWindowLength;\nuniform sampler2D uDistortionTexture;\nuniform vec2 uDistortionStrength;\nuniform sampler2D uTexture;\n\nout vec4 outColor;\n\nvoid main() {\n  if (vWindowX < 0.0 || vWindowX > uWindowLength) {\n    discard;\n  }\n\n  vec2 uv = vUv;\n\n  if (uDistortionEnabled > 0.5) {\n    vec2 offset = texture(uDistortionTexture, vDistortionUv).rg * 2.0 - 1.0;\n    uv += offset * uDistortionStrength;\n  }\n\n  if (uRepeatTexture < 0.5 && (uv.x < 0.0 || uv.x > 1.0)) {\n    discard;\n  }\n\n  if (uv.y < 0.0 || uv.y > 1.0) {\n    discard;\n  }\n\n  outColor = texture(uTexture, uv);\n}", A = "#version 300 es\nprecision highp float;\n\nin vec2 aPosition;\nin float aPathDistance;\nin float aTexY;\n\nuniform vec2 uResolution;\nuniform vec2 uDistortionRepeat;\nuniform float uDistortionScrollMode;\nuniform float uPathLength;\nuniform float uSourceBias;\nuniform float uStripWidth;\nuniform float uTravel;\nuniform float uTravelFactor;\n\nout vec2 vDistortionUv;\nout vec2 vUv;\nout float vWindowX;\n\nvoid main() {\n  vec2 zeroToOne = aPosition / uResolution;\n  vec2 clip = zeroToOne * 2.0 - 1.0;\n  float windowX = aPathDistance + uTravelFactor * uTravel + uSourceBias;\n  float pathUvX = aPathDistance / uPathLength;\n  float textUvX = windowX / uStripWidth;\n\n  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);\n  vUv = vec2(textUvX, aTexY);\n  vWindowX = windowX;\n  vDistortionUv = vec2(\n    mix(pathUvX, textUvX, uDistortionScrollMode) * uDistortionRepeat.x,\n    aTexY * uDistortionRepeat.y\n  );\n}";
+var M = "#version 300 es\nprecision highp float;\n\nin vec2 vDistortionUv;\nin vec2 vUv;\nin float vWindowX;\n\nuniform float uDistortionEnabled;\nuniform float uRepeatTexture;\nuniform float uWindowLength;\nuniform sampler2D uDistortionTexture;\nuniform vec2 uDistortionStrength;\nuniform sampler2D uTexture;\n\nout vec4 outColor;\n\nvoid main() {\n  if (vWindowX < 0.0 || vWindowX > uWindowLength) {\n    discard;\n  }\n\n  vec2 uv = vUv;\n\n  if (uDistortionEnabled > 0.5) {\n    vec2 offset = texture(uDistortionTexture, vDistortionUv).rg * 2.0 - 1.0;\n    uv += offset * uDistortionStrength;\n  }\n\n  if (uRepeatTexture < 0.5 && (uv.x < 0.0 || uv.x > 1.0)) {\n    discard;\n  }\n\n  if (uv.y < 0.0 || uv.y > 1.0) {\n    discard;\n  }\n\n  outColor = texture(uTexture, uv);\n}", N = "#version 300 es\nprecision highp float;\n\nin vec2 aPosition;\nin float aPathDistance;\nin float aTexY;\n\nuniform vec2 uResolution;\nuniform vec2 uDistortionRepeat;\nuniform float uDistortionScrollMode;\nuniform float uPathLength;\nuniform float uSourceBias;\nuniform float uStripWidth;\nuniform float uTravel;\nuniform float uTravelFactor;\n\nout vec2 vDistortionUv;\nout vec2 vUv;\nout float vWindowX;\n\nvoid main() {\n  vec2 zeroToOne = aPosition / uResolution;\n  vec2 clip = zeroToOne * 2.0 - 1.0;\n  float windowX = aPathDistance + uTravelFactor * uTravel + uSourceBias;\n  float pathUvX = aPathDistance / uPathLength;\n  float textUvX = windowX / uStripWidth;\n\n  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);\n  vUv = vec2(textUvX, aTexY);\n  vWindowX = windowX;\n  vDistortionUv = vec2(\n    mix(pathUvX, textUvX, uDistortionScrollMode) * uDistortionRepeat.x,\n    aTexY * uDistortionRepeat.y\n  );\n}";
 //#endregion
 //#region src/glRenderer.ts
-function j(e) {
-	let t = s(e, o(e, e.VERTEX_SHADER, A), o(e, e.FRAGMENT_SHADER, k)), n = u(e.createBuffer(), "buffer"), r = u(e.createTexture(), "texture"), i = u(e.createTexture(), "distortion texture");
+function P(e) {
+	let t = l(e, c(e, e.VERTEX_SHADER, N), c(e, e.FRAGMENT_SHADER, M)), n = f(e.createBuffer(), "buffer"), r = f(e.createTexture(), "texture"), i = f(e.createTexture(), "distortion texture");
 	return e.useProgram(t), e.enable(e.BLEND), e.disable(e.DEPTH_TEST), e.blendFunc(e.SRC_ALPHA, e.ONE_MINUS_SRC_ALPHA), e.bindTexture(e.TEXTURE_2D, r), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_S, e.REPEAT), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_T, e.CLAMP_TO_EDGE), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MIN_FILTER, e.LINEAR), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MAG_FILTER, e.LINEAR), e.bindTexture(e.TEXTURE_2D, i), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_S, e.REPEAT), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_WRAP_T, e.REPEAT), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MIN_FILTER, e.LINEAR), e.texParameteri(e.TEXTURE_2D, e.TEXTURE_MAG_FILTER, e.LINEAR), {
 		attributes: {
-			pathDistance: l(e, t, "aPathDistance"),
-			position: l(e, t, "aPosition"),
-			texY: l(e, t, "aTexY")
+			pathDistance: d(e, t, "aPathDistance"),
+			position: d(e, t, "aPosition"),
+			texY: d(e, t, "aTexY")
 		},
 		buffer: n,
 		distortionTexture: i,
@@ -336,45 +377,45 @@ function j(e) {
 		stripWidth: 1,
 		texture: r,
 		uniforms: {
-			distortionEnabled: c(e, t, "uDistortionEnabled"),
-			distortionRepeat: c(e, t, "uDistortionRepeat"),
-			distortionSampler: c(e, t, "uDistortionTexture"),
-			distortionScrollMode: c(e, t, "uDistortionScrollMode"),
-			distortionStrength: c(e, t, "uDistortionStrength"),
-			pathLength: c(e, t, "uPathLength"),
-			repeatTexture: c(e, t, "uRepeatTexture"),
-			resolution: c(e, t, "uResolution"),
-			sourceBias: c(e, t, "uSourceBias"),
-			stripWidth: c(e, t, "uStripWidth"),
-			texture: c(e, t, "uTexture"),
-			travel: c(e, t, "uTravel"),
-			travelFactor: c(e, t, "uTravelFactor"),
-			windowLength: c(e, t, "uWindowLength")
+			distortionEnabled: u(e, t, "uDistortionEnabled"),
+			distortionRepeat: u(e, t, "uDistortionRepeat"),
+			distortionSampler: u(e, t, "uDistortionTexture"),
+			distortionScrollMode: u(e, t, "uDistortionScrollMode"),
+			distortionStrength: u(e, t, "uDistortionStrength"),
+			pathLength: u(e, t, "uPathLength"),
+			repeatTexture: u(e, t, "uRepeatTexture"),
+			resolution: u(e, t, "uResolution"),
+			sourceBias: u(e, t, "uSourceBias"),
+			stripWidth: u(e, t, "uStripWidth"),
+			texture: u(e, t, "uTexture"),
+			travel: u(e, t, "uTravel"),
+			travelFactor: u(e, t, "uTravelFactor"),
+			windowLength: u(e, t, "uWindowLength")
 		},
 		vertexCount: 0,
 		windowLength: 1
 	};
 }
-function M(e, t, n, r, i, a, o, s, c, l) {
+function F(e, t, n, r, i, a, o, s, c, l) {
 	let { gl: u } = e, d = c.enabled && !!l;
-	e.pathLength = r, e.stripWidth = t.cssWidth, e.vertexCount = n.length / 4, e.windowLength = s, u.viewport(0, 0, Math.ceil(i * o), Math.ceil(a * o)), u.useProgram(e.program), u.uniform2f(e.uniforms.resolution, i, a), u.uniform1f(e.uniforms.pathLength, r), u.uniform1f(e.uniforms.stripWidth, t.cssWidth), u.uniform1f(e.uniforms.windowLength, s), u.uniform1i(e.uniforms.texture, 0), u.uniform1i(e.uniforms.distortionSampler, 1), u.uniform1f(e.uniforms.distortionEnabled, +!!d), u.uniform2f(e.uniforms.distortionRepeat, Math.max(.001, c.repeatX), Math.max(.001, c.repeatY)), u.uniform1f(e.uniforms.distortionScrollMode, +!!c.scrollWithText), u.uniform2f(e.uniforms.distortionStrength, c.strengthAlong / t.cssWidth, c.strengthAcross / t.cssHeight), u.bindBuffer(u.ARRAY_BUFFER, e.buffer), u.bufferData(u.ARRAY_BUFFER, n, u.STATIC_DRAW), P(e), u.activeTexture(u.TEXTURE0), u.bindTexture(u.TEXTURE_2D, e.texture), u.pixelStorei(u.UNPACK_FLIP_Y_WEBGL, !1), u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, t.canvas), u.activeTexture(u.TEXTURE1), u.bindTexture(u.TEXTURE_2D, e.distortionTexture), l ? u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, l) : u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, 1, 1, 0, u.RGBA, u.UNSIGNED_BYTE, new Uint8Array([
+	e.pathLength = r, e.stripWidth = t.cssWidth, e.vertexCount = n.length / 4, e.windowLength = s, u.viewport(0, 0, Math.ceil(i * o), Math.ceil(a * o)), u.useProgram(e.program), u.uniform2f(e.uniforms.resolution, i, a), u.uniform1f(e.uniforms.pathLength, r), u.uniform1f(e.uniforms.stripWidth, t.cssWidth), u.uniform1f(e.uniforms.windowLength, s), u.uniform1i(e.uniforms.texture, 0), u.uniform1i(e.uniforms.distortionSampler, 1), u.uniform1f(e.uniforms.distortionEnabled, +!!d), u.uniform2f(e.uniforms.distortionRepeat, Math.max(.001, c.repeatX), Math.max(.001, c.repeatY)), u.uniform1f(e.uniforms.distortionScrollMode, +!!c.scrollWithText), u.uniform2f(e.uniforms.distortionStrength, c.strengthAlong / t.cssWidth, c.strengthAcross / t.cssHeight), u.bindBuffer(u.ARRAY_BUFFER, e.buffer), u.bufferData(u.ARRAY_BUFFER, n, u.STATIC_DRAW), L(e), u.activeTexture(u.TEXTURE0), u.bindTexture(u.TEXTURE_2D, e.texture), u.pixelStorei(u.UNPACK_FLIP_Y_WEBGL, !1), u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, t.canvas), u.activeTexture(u.TEXTURE1), u.bindTexture(u.TEXTURE_2D, e.distortionTexture), l ? u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, l) : u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, 1, 1, 0, u.RGBA, u.UNSIGNED_BYTE, new Uint8Array([
 		128,
 		128,
 		128,
 		255
 	]));
 }
-function N(e, t, n, r) {
+function I(e, t, n, r) {
 	let { gl: i } = e, a = n === "reverse";
-	i.clearColor(0, 0, 0, 0), i.clear(i.COLOR_BUFFER_BIT), i.useProgram(e.program), i.uniform1f(e.uniforms.travel, t), i.uniform1f(e.uniforms.travelFactor, a ? 1 : -1), i.uniform1f(e.uniforms.repeatTexture, +!!r), i.uniform1f(e.uniforms.sourceBias, a ? -e.pathLength : e.windowLength), i.activeTexture(i.TEXTURE0), i.bindTexture(i.TEXTURE_2D, e.texture), i.activeTexture(i.TEXTURE1), i.bindTexture(i.TEXTURE_2D, e.distortionTexture), i.bindBuffer(i.ARRAY_BUFFER, e.buffer), P(e), i.drawArrays(i.TRIANGLES, 0, e.vertexCount);
+	i.clearColor(0, 0, 0, 0), i.clear(i.COLOR_BUFFER_BIT), i.useProgram(e.program), i.uniform1f(e.uniforms.travel, t), i.uniform1f(e.uniforms.travelFactor, a ? 1 : -1), i.uniform1f(e.uniforms.repeatTexture, +!!r), i.uniform1f(e.uniforms.sourceBias, a ? -e.pathLength : e.windowLength), i.activeTexture(i.TEXTURE0), i.bindTexture(i.TEXTURE_2D, e.texture), i.activeTexture(i.TEXTURE1), i.bindTexture(i.TEXTURE_2D, e.distortionTexture), i.bindBuffer(i.ARRAY_BUFFER, e.buffer), L(e), i.drawArrays(i.TRIANGLES, 0, e.vertexCount);
 }
-function P(e) {
+function L(e) {
 	let { gl: t } = e, n = 4 * Float32Array.BYTES_PER_ELEMENT;
 	t.enableVertexAttribArray(e.attributes.position), t.vertexAttribPointer(e.attributes.position, 2, t.FLOAT, !1, n, 0), t.enableVertexAttribArray(e.attributes.pathDistance), t.vertexAttribPointer(e.attributes.pathDistance, 1, t.FLOAT, !1, n, 2 * Float32Array.BYTES_PER_ELEMENT), t.enableVertexAttribArray(e.attributes.texY), t.vertexAttribPointer(e.attributes.texY, 1, t.FLOAT, !1, n, 3 * Float32Array.BYTES_PER_ELEMENT);
 }
 //#endregion
 //#region src/EdgeTicker.ts
-var F = class {
+var R = class {
 	canvas;
 	gl;
 	renderer;
@@ -385,8 +426,8 @@ var F = class {
 	destroyed = !1;
 	onResize = () => this.rebuildLayout();
 	onScroll = () => this.requestDraw();
-	constructor(n, i = {}) {
-		this.canvas = r(n), this.gl = a(this.canvas), this.renderer = j(this.gl), this.options = t(e, i), this.start();
+	constructor(n, r = {}) {
+		this.canvas = a(n), this.gl = s(this.canvas), this.renderer = P(this.gl), this.options = t(e, r), this.start();
 	}
 	getOptions() {
 		return this.options;
@@ -401,22 +442,22 @@ var F = class {
 		this.destroyed || (this.destroyed = !0, window.removeEventListener("resize", this.onResize), window.removeEventListener("scroll", this.onScroll));
 	}
 	async start() {
-		await D(this.options.font), this.distortionTextureSource = await O(this.options.distortion), !this.destroyed && (this.rebuildLayout(), window.addEventListener("resize", this.onResize), window.addEventListener("scroll", this.onScroll, { passive: !0 }), this.requestDraw());
+		await A(this.options.font), this.distortionTextureSource = await j(this.options.distortion), !this.destroyed && (this.rebuildLayout(), window.addEventListener("resize", this.onResize), window.addEventListener("scroll", this.onScroll, { passive: !0 }), this.requestDraw());
 	}
 	async reload() {
-		await D(this.options.font), this.distortionTextureSource = await O(this.options.distortion), !this.destroyed && this.rebuildLayout();
+		await A(this.options.font), this.distortionTextureSource = await j(this.options.distortion), !this.destroyed && this.rebuildLayout();
 	}
 	rebuildLayout() {
 		if (this.destroyed) return;
-		let e = this.options, t = window.innerWidth, n = window.innerHeight, r = Math.min(window.devicePixelRatio || 1, 2), i = y(e, r), a = this.resolveOverscan(e, i), o = d(t, n, e, a.path), s = e.repeatTexture ? i.cssWidth * Math.max(.01, e.repeatWindowCopies) : i.cssWidth, c = m(o, i, e), l = this.getWindowVisibleBounds(s, i), u = e.direction === "reverse" ? l.start + a.inside.start : s - l.end + a.inside.start, f = e.direction === "reverse" ? o.length + l.end - a.inside.end : o.length + s - l.start - a.inside.end, p = Math.max(1, f - u), h = Math.max(0, e.scrollLaps), g = this.resolveScrollPadding(e, p), _ = Math.max(1, p + g.start + g.end);
-		this.canvas.width = Math.ceil(t * r), this.canvas.height = Math.ceil(n * r), this.canvas.style.width = `${t}px`, this.canvas.style.height = `${n}px`, M(this.renderer, i, c, o.length, t, n, r, s, e.distortion, this.distortionTextureSource), this.layoutState = {
-			activeTravelDistance: p,
+		let e = this.options, t = window.innerWidth, n = window.innerHeight, r = Math.min(window.devicePixelRatio || 1, 2), i = S(e, r), a = this.resolveOverscan(e, i), o = p(t, n, e, a.path), s = e.repeatTexture ? i.cssWidth * Math.max(.01, e.repeatWindowCopies) : i.cssWidth, c = _(o, i, e), l = this.getWindowVisibleBounds(s, i), u = e.direction === "reverse" ? l.start + a.inside.start : s - l.end + a.inside.start, d = e.direction === "reverse" ? o.length + l.end - a.inside.end : o.length + s - l.start - a.inside.end, f = Math.max(1, d - u), m = Math.max(0, e.scrollLaps), h = this.resolveScrollPadding(e, f), g = Math.max(1, f + h.start + h.end);
+		this.canvas.width = Math.ceil(t * r), this.canvas.height = Math.ceil(n * r), this.canvas.style.width = `${t}px`, this.canvas.style.height = `${n}px`, F(this.renderer, i, c, o.length, t, n, r, s, e.distortion, this.distortionTextureSource), this.layoutState = {
+			activeTravelDistance: f,
 			direction: e.direction,
-			lapCount: h,
+			lapCount: m,
 			repeatTexture: e.repeatTexture,
-			scrollPaddingStart: g.start,
+			scrollPaddingStart: h.start,
 			travelOffset: u,
-			travelDistance: _
+			travelDistance: g
 		}, this.requestDraw();
 	}
 	resolveOverscan(e, t) {
@@ -451,8 +492,8 @@ var F = class {
 	}
 	drawTicker() {
 		if (!this.layoutState || this.destroyed) return;
-		let { activeTravelDistance: e, direction: t, lapCount: r, repeatTexture: i, scrollPaddingStart: a, travelDistance: o, travelOffset: s } = this.layoutState, c = Math.max(1, this.getMaxScrollDistance()), l = n((n(window.scrollY / c, 0, 1) * o - a) / e, 0, 1) * e * r, u = this.getLoopedTravel(l, e);
-		N(this.renderer, u + s, t, i);
+		let { activeTravelDistance: e, direction: t, lapCount: n, repeatTexture: r, scrollPaddingStart: a, travelDistance: o, travelOffset: s } = this.layoutState, c = Math.max(1, this.getMaxScrollDistance()), l = i((i(window.scrollY / c, 0, 1) * o - a) / e, 0, 1) * e * n, u = this.getLoopedTravel(l, e);
+		I(this.renderer, u + s, t, r);
 	}
 	getLoopedTravel(e, t) {
 		if (e <= 0) return 0;
@@ -474,8 +515,8 @@ var F = class {
 		return Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
 	}
 };
-function I(e, t = {}) {
-	return new F(e, t);
+function z(e, t = {}) {
+	return new R(e, t);
 }
 //#endregion
-export { F as EdgeTicker, I as createEdgeTicker, e as defaultOptions, t as resolveOptions };
+export { R as EdgeTicker, z as createEdgeTicker, e as defaultOptions, t as resolveOptions };

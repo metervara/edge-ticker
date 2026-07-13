@@ -7,7 +7,7 @@ scrolls.
 ## Install
 
 ```bash
-npm install github:metervara/edge-ticker#v1.0.0
+npm install github:metervara/edge-ticker#v1.0.1
 ```
 
 There is no npm release — pin to a git tag. The built `dist/` is committed to the
@@ -107,7 +107,7 @@ import { defaultOptions } from "@metervara/edge-ticker";
 | `backgroundPaddingX` | `number` | `12` | Horizontal padding of run background pills. |
 | `backgroundRadius` | `number` | `7` | Corner radius of run background pills. |
 | `cornerRadius` | `number` | `86` | Centerline radius of the viewport-edge corners. |
-| `edgePadding` | `number` | `24` | Inset of the path from the viewport edge. |
+| `edgePadding` | `number \| { x?, y?, top?, right?, bottom?, left? }` | `24` | Inset of the strip from the viewport edge. Use `x`/`y` for side vs top/bottom spacing, or individual sides for full control. |
 | `direction` | `"forward" \| "reverse"` | `"reverse"` | `reverse` enters horizontally on the top edge; `forward` enters on the right edge. |
 | `exitOverscan` | `{ start, end }` | `{ 0, -0.5 }` | Where the text sits at each end, normalized to strip length & relative to scroll direction. `0` = enters/exits exactly; negative pulls it *inside* (partially visible); positive overscans fully out. Default leaves it half-in at the end. |
 | `repeatTexture` | `boolean` | `true` | Repeat the text texture inside the moving window. |

@@ -57,6 +57,19 @@ export type NormalizedRange = {
   start: number;
 };
 
+export type EdgePadding =
+  | number
+  | {
+      bottom?: number;
+      left?: number;
+      right?: number;
+      top?: number;
+      /** Horizontal fallback for left/right. */
+      x?: number;
+      /** Vertical fallback for top/bottom. */
+      y?: number;
+    };
+
 export type TickerOptions = {
   // Text rendering
   backgroundPaddingX: number;
@@ -69,7 +82,7 @@ export type TickerOptions = {
   // Path placement
   cornerRadius: number;
   direction: TickerDirection;
-  edgePadding: number;
+  edgePadding: EdgePadding;
   /**
    * Normalized to the rendered strip length. 1 = one full strip; negative pulls
    * the path inside. start/end are relative to ticker scroll direction.

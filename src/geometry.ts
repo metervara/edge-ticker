@@ -1,4 +1,4 @@
-import type { TickerOptions } from "./types";
+import type { EdgePadding, TickerOptions } from "./types";
 import type { TextStrip } from "./textStrip";
 import { clamp } from "./utils";
 
@@ -53,6 +53,13 @@ export type PixelRange = {
   start: number;
 };
 
+type ResolvedEdgePadding = {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
+};
+
 export function buildEdgePath(
   width: number,
   height: number,
@@ -60,11 +67,12 @@ export function buildEdgePath(
   exitOverscan: PixelRange,
 ): EdgePath {
   const textBand = options.font.lineHeight + options.stripPaddingY * 2;
-  const inset = options.edgePadding + textBand / 2;
-  const left = inset;
-  const top = inset;
-  const right = width - inset;
-  const bottom = height - inset;
+  const edgePadding = resolveEdgePadding(options.edgePadding);
+  const halfTextBand = textBand / 2;
+  const left = edgePadding.left + halfTextBand;
+  const top = edgePadding.top + halfTextBand;
+  const right = width - edgePadding.right - halfTextBand;
+  const bottom = height - edgePadding.bottom - halfTextBand;
   const radius = clamp(
     options.cornerRadius,
     12,
@@ -83,6 +91,27 @@ export function buildEdgePath(
   return {
     length: segments.reduce((total, segment) => total + segment.length, 0),
     segments,
+  };
+}
+
+function resolveEdgePadding(edgePadding: EdgePadding): ResolvedEdgePadding {
+  if (typeof edgePadding === "number") {
+    return {
+      top: edgePadding,
+      right: edgePadding,
+      bottom: edgePadding,
+      left: edgePadding,
+    };
+  }
+
+  const x = edgePadding.x ?? 0;
+  const y = edgePadding.y ?? 0;
+
+  return {
+    top: edgePadding.top ?? y,
+    right: edgePadding.right ?? x,
+    bottom: edgePadding.bottom ?? y,
+    left: edgePadding.left ?? x,
   };
 }
 

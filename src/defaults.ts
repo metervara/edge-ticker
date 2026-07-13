@@ -1,4 +1,4 @@
-import type { PartialTickerOptions, TickerOptions } from "./types";
+import type { EdgePadding, PartialTickerOptions, TickerOptions } from "./types";
 
 export const defaultOptions: TickerOptions = {
   // Text rendering
@@ -87,10 +87,52 @@ export function resolveOptions(
   return {
     ...base,
     ...overrides,
+    edgePadding: mergeEdgePadding(base.edgePadding, overrides.edgePadding),
     font: { ...base.font, ...overrides.font },
     exitOverscan: { ...base.exitOverscan, ...overrides.exitOverscan },
     scrollPadding: { ...base.scrollPadding, ...overrides.scrollPadding },
     distortion: { ...base.distortion, ...overrides.distortion },
     runs: overrides.runs ?? base.runs,
+  };
+}
+
+function mergeEdgePadding(
+  base: EdgePadding,
+  override: EdgePadding | undefined,
+): EdgePadding {
+  if (override === undefined || typeof override === "number") {
+    return override ?? base;
+  }
+
+  const basePadding = normalizeEdgePadding(base);
+  const x = override.x;
+  const y = override.y;
+
+  return {
+    top: override.top ?? y ?? basePadding.top,
+    right: override.right ?? x ?? basePadding.right,
+    bottom: override.bottom ?? y ?? basePadding.bottom,
+    left: override.left ?? x ?? basePadding.left,
+  };
+}
+
+function normalizeEdgePadding(edgePadding: EdgePadding) {
+  if (typeof edgePadding === "number") {
+    return {
+      top: edgePadding,
+      right: edgePadding,
+      bottom: edgePadding,
+      left: edgePadding,
+    };
+  }
+
+  const x = edgePadding.x ?? 0;
+  const y = edgePadding.y ?? 0;
+
+  return {
+    top: edgePadding.top ?? y,
+    right: edgePadding.right ?? x,
+    bottom: edgePadding.bottom ?? y,
+    left: edgePadding.left ?? x,
   };
 }

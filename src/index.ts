@@ -13,6 +13,7 @@ export type {
   TickerFont,
   DistortionOptions,
   NormalizedRange,
+  EdgePadding,
   FontStyle,
   TickerDirection,
 } from "./types";
