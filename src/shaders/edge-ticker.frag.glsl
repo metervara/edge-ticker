@@ -6,6 +6,8 @@ in vec2 vUv;
 in float vWindowX;
 
 uniform float uDistortionEnabled;
+uniform float uRepeatSourceStart;
+uniform float uRepeatSourceWidth;
 uniform float uRepeatTexture;
 uniform float uTextureRows;
 uniform float uTextureRowWidth;
@@ -32,7 +34,10 @@ void main() {
   float sourceX = uv.x * uStripWidth;
 
   if (uRepeatTexture > 0.5) {
-    sourceX = mod(mod(sourceX, uStripWidth) + uStripWidth, uStripWidth);
+    sourceX = uRepeatSourceStart + mod(
+      mod(sourceX, uRepeatSourceWidth) + uRepeatSourceWidth,
+      uRepeatSourceWidth
+    );
   } else if (sourceX < 0.0 || sourceX > uStripWidth) {
     discard;
   }

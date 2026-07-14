@@ -143,10 +143,14 @@ export class EdgeTicker {
     const overscan = this.resolveOverscan(options, strip);
     const path = buildEdgePath(cssWidth, cssHeight, options, overscan.path);
     const windowLength = options.repeatTexture
-      ? strip.cssWidth * Math.max(0.01, options.repeatWindowCopies)
+      ? strip.repeatSourceWidth * Math.max(0.01, options.repeatWindowCopies)
       : strip.cssWidth;
     const meshVertices = buildTickerMesh(path, strip, options);
-    const visibleBounds = this.getWindowVisibleBounds(windowLength, strip);
+    const visibleBounds = this.getWindowVisibleBounds(
+      windowLength,
+      strip,
+      options.repeatTexture,
+    );
     const travelStart =
       options.direction === "reverse"
         ? visibleBounds.start + overscan.inside.start
@@ -298,17 +302,33 @@ export class EdgeTicker {
   private getWindowVisibleBounds(
     windowLength: number,
     strip: TextStrip,
+    repeatTexture: boolean,
   ): WindowVisibleBounds {
-    const start = Math.min(strip.visibleStart, windowLength);
+    const repeatSourceStart = repeatTexture ? strip.repeatSourceStart : 0;
+    const repeatPeriod = repeatTexture ? strip.repeatSourceWidth : strip.cssWidth;
+    const repeatedVisibleStart = clamp(
+      strip.visibleStart - repeatSourceStart,
+      0,
+      repeatPeriod,
+    );
+    const repeatedVisibleEnd = clamp(
+      strip.visibleEnd - repeatSourceStart,
+      0,
+      repeatPeriod,
+    );
+    const start = Math.min(repeatedVisibleStart, windowLength);
     let end = start;
 
     for (
       let repeatStart = 0;
       repeatStart < windowLength;
-      repeatStart += strip.cssWidth
+      repeatStart += repeatPeriod
     ) {
-      const visibleStart = repeatStart + strip.visibleStart;
-      const visibleEnd = Math.min(repeatStart + strip.visibleEnd, windowLength);
+      const visibleStart = repeatStart + repeatedVisibleStart;
+      const visibleEnd = Math.min(
+        repeatStart + repeatedVisibleEnd,
+        windowLength,
+      );
 
       if (visibleStart <= windowLength && visibleEnd > visibleStart) {
         end = Math.max(end, visibleEnd);

@@ -21,6 +21,8 @@ export type WebGLTickerRenderer = {
         distortionScrollMode: WebGLUniformLocation;
         distortionStrength: WebGLUniformLocation;
         pathLength: WebGLUniformLocation;
+        repeatSourceStart: WebGLUniformLocation;
+        repeatSourceWidth: WebGLUniformLocation;
         repeatTexture: WebGLUniformLocation;
         resolution: WebGLUniformLocation;
         sourceBias: WebGLUniformLocation;

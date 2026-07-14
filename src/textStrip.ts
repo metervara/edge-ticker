@@ -6,6 +6,8 @@ export type TextStrip = {
   cssHeight: number;
   cssWidth: number;
   midline: number;
+  repeatSourceStart: number;
+  repeatSourceWidth: number;
   scale: number;
   textureRows: number;
   textureRowWidth: number;
@@ -72,6 +74,11 @@ export function renderTextStrip(
   const metrics = measureFontMetrics(measureContext, options.font, options);
   const cssWidth = Math.ceil(layout.cssWidth);
   const cssHeight = Math.ceil(options.font.lineHeight + options.stripPaddingY * 2);
+  const repeatSourceStart = Math.min(options.stripPaddingX, cssWidth);
+  const repeatSourceWidth = Math.max(
+    1,
+    cssWidth - repeatSourceStart - options.stripPaddingX,
+  );
   const textureRowWidth = Math.ceil(layout.rowWidth);
   const textureRows = layout.rowCount;
   const stripCanvas = document.createElement("canvas");
@@ -152,6 +159,8 @@ export function renderTextStrip(
     cssHeight,
     cssWidth,
     midline: cssHeight / 2,
+    repeatSourceStart,
+    repeatSourceWidth,
     scale,
     textureRows,
     textureRowWidth,

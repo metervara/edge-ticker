@@ -30,6 +30,8 @@ export type WebGLTickerRenderer = {
     distortionScrollMode: WebGLUniformLocation;
     distortionStrength: WebGLUniformLocation;
     pathLength: WebGLUniformLocation;
+    repeatSourceStart: WebGLUniformLocation;
+    repeatSourceWidth: WebGLUniformLocation;
     repeatTexture: WebGLUniformLocation;
     resolution: WebGLUniformLocation;
     sourceBias: WebGLUniformLocation;
@@ -101,6 +103,8 @@ export function createWebGLTickerRenderer(
       distortionScrollMode: requireUniform(glContext, program, "uDistortionScrollMode"),
       distortionStrength: requireUniform(glContext, program, "uDistortionStrength"),
       pathLength: requireUniform(glContext, program, "uPathLength"),
+      repeatSourceStart: requireUniform(glContext, program, "uRepeatSourceStart"),
+      repeatSourceWidth: requireUniform(glContext, program, "uRepeatSourceWidth"),
       repeatTexture: requireUniform(glContext, program, "uRepeatTexture"),
       resolution: requireUniform(glContext, program, "uResolution"),
       sourceBias: requireUniform(glContext, program, "uSourceBias"),
@@ -141,6 +145,8 @@ export function updateWebGLTickerRenderer(
   glContext.useProgram(target.program);
   glContext.uniform2f(target.uniforms.resolution, cssWidth, cssHeight);
   glContext.uniform1f(target.uniforms.pathLength, pathLength);
+  glContext.uniform1f(target.uniforms.repeatSourceStart, strip.repeatSourceStart);
+  glContext.uniform1f(target.uniforms.repeatSourceWidth, strip.repeatSourceWidth);
   glContext.uniform1f(target.uniforms.stripWidth, strip.cssWidth);
   glContext.uniform1f(target.uniforms.textureRows, strip.textureRows);
   glContext.uniform1f(target.uniforms.textureRowWidth, strip.textureRowWidth);

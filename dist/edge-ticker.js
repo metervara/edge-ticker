@@ -285,8 +285,8 @@ function x(e, t) {
 //#endregion
 //#region src/textStrip.ts
 function S(e, t, n = 8192) {
-	let r = Math.min(t, 2), i = o(document.createElement("canvas")), a = Math.ceil(C(i, e)), s = Math.max(1, Math.floor(n / r)), c = w(i, e, Math.min(a, s)), l = E(i, e.font, e), u = Math.ceil(c.cssWidth), d = Math.ceil(e.font.lineHeight + e.stripPaddingY * 2), f = Math.ceil(c.rowWidth), p = c.rowCount, m = document.createElement("canvas"), h = o(m);
-	return m.width = Math.ceil(f * r), m.height = Math.ceil(d * p * r), h.scale(r, r), h.textBaseline = "alphabetic", h.imageSmoothingEnabled = !0, h.imageSmoothingQuality = "high", e.runs.forEach((t) => {
+	let r = Math.min(t, 2), i = o(document.createElement("canvas")), a = Math.ceil(C(i, e)), s = Math.max(1, Math.floor(n / r)), c = w(i, e, Math.min(a, s)), l = E(i, e.font, e), u = Math.ceil(c.cssWidth), d = Math.ceil(e.font.lineHeight + e.stripPaddingY * 2), f = Math.min(e.stripPaddingX, u), p = Math.max(1, u - f - e.stripPaddingX), m = Math.ceil(c.rowWidth), h = c.rowCount, g = document.createElement("canvas"), _ = o(g);
+	return g.width = Math.ceil(m * r), g.height = Math.ceil(d * h * r), _.scale(r, r), _.textBaseline = "alphabetic", _.imageSmoothingEnabled = !0, _.imageSmoothingQuality = "high", e.runs.forEach((t) => {
 		let n = c.glyphs.filter((e) => e.run === t), r = M(n.map((e) => ({
 			end: e.localX + e.advance,
 			row: e.row,
@@ -296,20 +296,22 @@ function S(e, t, n = 8192) {
 		if (t.background) {
 			let n = M(c.backgroundSegments.filter((e) => e.run === t)), r = D(i, e.font, t);
 			n.forEach((n) => {
-				I(h, n, l.baseline, r, d, e, t.background);
+				I(_, n, l.baseline, r, d, e, t.background);
 			});
 		}
-		h.font = k(e.font, t), h.fillStyle = t.fill || "#111111", h.globalCompositeOperation = t.punchOut ? "destination-out" : "source-over", n.forEach((t) => {
-			N(h, t, r, l, d, e);
-		}), t.underline && L(h, M(c.underlineSegments.filter((e) => e.run === t)), l, d, e, t.fill || "#111111", t), h.globalCompositeOperation = "source-over";
+		_.font = k(e.font, t), _.fillStyle = t.fill || "#111111", _.globalCompositeOperation = t.punchOut ? "destination-out" : "source-over", n.forEach((t) => {
+			N(_, t, r, l, d, e);
+		}), t.underline && L(_, M(c.underlineSegments.filter((e) => e.run === t)), l, d, e, t.fill || "#111111", t), _.globalCompositeOperation = "source-over";
 	}), {
-		canvas: m,
+		canvas: g,
 		cssHeight: d,
 		cssWidth: u,
 		midline: d / 2,
+		repeatSourceStart: f,
+		repeatSourceWidth: p,
 		scale: r,
-		textureRows: p,
-		textureRowWidth: f,
+		textureRows: h,
+		textureRowWidth: m,
 		visibleEnd: c.visibleEnd,
 		visibleStart: c.visibleStart
 	};
@@ -466,7 +468,7 @@ async function B(e) {
 }
 //#endregion
 //#region src/shaders/edge-ticker.frag.glsl
-var V = "#version 300 es\nprecision highp float;\n\nin vec2 vDistortionUv;\nin vec2 vUv;\nin float vWindowX;\n\nuniform float uDistortionEnabled;\nuniform float uRepeatTexture;\nuniform float uTextureRows;\nuniform float uTextureRowWidth;\nuniform float uWindowLength;\nuniform sampler2D uDistortionTexture;\nuniform vec2 uDistortionStrength;\nuniform float uStripWidth;\nuniform sampler2D uTexture;\n\nout vec4 outColor;\n\nvoid main() {\n  if (vWindowX < 0.0 || vWindowX > uWindowLength) {\n    discard;\n  }\n\n  vec2 uv = vUv;\n\n  if (uDistortionEnabled > 0.5) {\n    vec2 offset = texture(uDistortionTexture, vDistortionUv).rg * 2.0 - 1.0;\n    uv += offset * uDistortionStrength;\n  }\n\n  float sourceX = uv.x * uStripWidth;\n\n  if (uRepeatTexture > 0.5) {\n    sourceX = mod(mod(sourceX, uStripWidth) + uStripWidth, uStripWidth);\n  } else if (sourceX < 0.0 || sourceX > uStripWidth) {\n    discard;\n  }\n\n  if (uv.y < 0.0 || uv.y > 1.0) {\n    discard;\n  }\n\n  float row = floor(sourceX / uTextureRowWidth);\n\n  if (row < 0.0 || row >= uTextureRows) {\n    discard;\n  }\n\n  float localX = sourceX - row * uTextureRowWidth;\n  vec2 atlasUv = vec2(\n    localX / uTextureRowWidth,\n    (row + uv.y) / uTextureRows\n  );\n\n  outColor = texture(uTexture, atlasUv);\n}", H = "#version 300 es\nprecision highp float;\n\nin vec2 aPosition;\nin float aPathDistance;\nin float aTexY;\n\nuniform vec2 uResolution;\nuniform vec2 uDistortionRepeat;\nuniform float uDistortionScrollMode;\nuniform float uPathLength;\nuniform float uSourceBias;\nuniform float uStripWidth;\nuniform float uTravel;\nuniform float uTravelFactor;\n\nout vec2 vDistortionUv;\nout vec2 vUv;\nout float vWindowX;\n\nvoid main() {\n  vec2 zeroToOne = aPosition / uResolution;\n  vec2 clip = zeroToOne * 2.0 - 1.0;\n  float windowX = aPathDistance + uTravelFactor * uTravel + uSourceBias;\n  float pathUvX = aPathDistance / uPathLength;\n  float textUvX = windowX / uStripWidth;\n\n  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);\n  vUv = vec2(textUvX, aTexY);\n  vWindowX = windowX;\n  vDistortionUv = vec2(\n    mix(pathUvX, textUvX, uDistortionScrollMode) * uDistortionRepeat.x,\n    aTexY * uDistortionRepeat.y\n  );\n}";
+var V = "#version 300 es\nprecision highp float;\n\nin vec2 vDistortionUv;\nin vec2 vUv;\nin float vWindowX;\n\nuniform float uDistortionEnabled;\nuniform float uRepeatSourceStart;\nuniform float uRepeatSourceWidth;\nuniform float uRepeatTexture;\nuniform float uTextureRows;\nuniform float uTextureRowWidth;\nuniform float uWindowLength;\nuniform sampler2D uDistortionTexture;\nuniform vec2 uDistortionStrength;\nuniform float uStripWidth;\nuniform sampler2D uTexture;\n\nout vec4 outColor;\n\nvoid main() {\n  if (vWindowX < 0.0 || vWindowX > uWindowLength) {\n    discard;\n  }\n\n  vec2 uv = vUv;\n\n  if (uDistortionEnabled > 0.5) {\n    vec2 offset = texture(uDistortionTexture, vDistortionUv).rg * 2.0 - 1.0;\n    uv += offset * uDistortionStrength;\n  }\n\n  float sourceX = uv.x * uStripWidth;\n\n  if (uRepeatTexture > 0.5) {\n    sourceX = uRepeatSourceStart + mod(\n      mod(sourceX, uRepeatSourceWidth) + uRepeatSourceWidth,\n      uRepeatSourceWidth\n    );\n  } else if (sourceX < 0.0 || sourceX > uStripWidth) {\n    discard;\n  }\n\n  if (uv.y < 0.0 || uv.y > 1.0) {\n    discard;\n  }\n\n  float row = floor(sourceX / uTextureRowWidth);\n\n  if (row < 0.0 || row >= uTextureRows) {\n    discard;\n  }\n\n  float localX = sourceX - row * uTextureRowWidth;\n  vec2 atlasUv = vec2(\n    localX / uTextureRowWidth,\n    (row + uv.y) / uTextureRows\n  );\n\n  outColor = texture(uTexture, atlasUv);\n}", H = "#version 300 es\nprecision highp float;\n\nin vec2 aPosition;\nin float aPathDistance;\nin float aTexY;\n\nuniform vec2 uResolution;\nuniform vec2 uDistortionRepeat;\nuniform float uDistortionScrollMode;\nuniform float uPathLength;\nuniform float uSourceBias;\nuniform float uStripWidth;\nuniform float uTravel;\nuniform float uTravelFactor;\n\nout vec2 vDistortionUv;\nout vec2 vUv;\nout float vWindowX;\n\nvoid main() {\n  vec2 zeroToOne = aPosition / uResolution;\n  vec2 clip = zeroToOne * 2.0 - 1.0;\n  float windowX = aPathDistance + uTravelFactor * uTravel + uSourceBias;\n  float pathUvX = aPathDistance / uPathLength;\n  float textUvX = windowX / uStripWidth;\n\n  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);\n  vUv = vec2(textUvX, aTexY);\n  vWindowX = windowX;\n  vDistortionUv = vec2(\n    mix(pathUvX, textUvX, uDistortionScrollMode) * uDistortionRepeat.x,\n    aTexY * uDistortionRepeat.y\n  );\n}";
 //#endregion
 //#region src/glRenderer.ts
 function U(e) {
@@ -491,6 +493,8 @@ function U(e) {
 			distortionScrollMode: u(e, t, "uDistortionScrollMode"),
 			distortionStrength: u(e, t, "uDistortionStrength"),
 			pathLength: u(e, t, "uPathLength"),
+			repeatSourceStart: u(e, t, "uRepeatSourceStart"),
+			repeatSourceWidth: u(e, t, "uRepeatSourceWidth"),
 			repeatTexture: u(e, t, "uRepeatTexture"),
 			resolution: u(e, t, "uResolution"),
 			sourceBias: u(e, t, "uSourceBias"),
@@ -508,7 +512,7 @@ function U(e) {
 }
 function W(e, t, n, r, i, a, o, s, c, l) {
 	let { gl: u } = e, d = c.enabled && !!l;
-	e.pathLength = r, e.stripWidth = t.cssWidth, e.vertexCount = n.length / 4, e.windowLength = s, u.viewport(0, 0, Math.ceil(i * o), Math.ceil(a * o)), u.useProgram(e.program), u.uniform2f(e.uniforms.resolution, i, a), u.uniform1f(e.uniforms.pathLength, r), u.uniform1f(e.uniforms.stripWidth, t.cssWidth), u.uniform1f(e.uniforms.textureRows, t.textureRows), u.uniform1f(e.uniforms.textureRowWidth, t.textureRowWidth), u.uniform1f(e.uniforms.windowLength, s), u.uniform1i(e.uniforms.texture, 0), u.uniform1i(e.uniforms.distortionSampler, 1), u.uniform1f(e.uniforms.distortionEnabled, +!!d), u.uniform2f(e.uniforms.distortionRepeat, Math.max(.001, c.repeatX), Math.max(.001, c.repeatY)), u.uniform1f(e.uniforms.distortionScrollMode, +!!c.scrollWithText), u.uniform2f(e.uniforms.distortionStrength, c.strengthAlong / t.cssWidth, c.strengthAcross / t.cssHeight), u.bindBuffer(u.ARRAY_BUFFER, e.buffer), u.bufferData(u.ARRAY_BUFFER, n, u.STATIC_DRAW), K(e), u.activeTexture(u.TEXTURE0), u.bindTexture(u.TEXTURE_2D, e.texture), u.pixelStorei(u.UNPACK_FLIP_Y_WEBGL, !1), u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, t.canvas), u.activeTexture(u.TEXTURE1), u.bindTexture(u.TEXTURE_2D, e.distortionTexture), l ? u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, l) : u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, 1, 1, 0, u.RGBA, u.UNSIGNED_BYTE, new Uint8Array([
+	e.pathLength = r, e.stripWidth = t.cssWidth, e.vertexCount = n.length / 4, e.windowLength = s, u.viewport(0, 0, Math.ceil(i * o), Math.ceil(a * o)), u.useProgram(e.program), u.uniform2f(e.uniforms.resolution, i, a), u.uniform1f(e.uniforms.pathLength, r), u.uniform1f(e.uniforms.repeatSourceStart, t.repeatSourceStart), u.uniform1f(e.uniforms.repeatSourceWidth, t.repeatSourceWidth), u.uniform1f(e.uniforms.stripWidth, t.cssWidth), u.uniform1f(e.uniforms.textureRows, t.textureRows), u.uniform1f(e.uniforms.textureRowWidth, t.textureRowWidth), u.uniform1f(e.uniforms.windowLength, s), u.uniform1i(e.uniforms.texture, 0), u.uniform1i(e.uniforms.distortionSampler, 1), u.uniform1f(e.uniforms.distortionEnabled, +!!d), u.uniform2f(e.uniforms.distortionRepeat, Math.max(.001, c.repeatX), Math.max(.001, c.repeatY)), u.uniform1f(e.uniforms.distortionScrollMode, +!!c.scrollWithText), u.uniform2f(e.uniforms.distortionStrength, c.strengthAlong / t.cssWidth, c.strengthAcross / t.cssHeight), u.bindBuffer(u.ARRAY_BUFFER, e.buffer), u.bufferData(u.ARRAY_BUFFER, n, u.STATIC_DRAW), K(e), u.activeTexture(u.TEXTURE0), u.bindTexture(u.TEXTURE_2D, e.texture), u.pixelStorei(u.UNPACK_FLIP_Y_WEBGL, !1), u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, t.canvas), u.activeTexture(u.TEXTURE1), u.bindTexture(u.TEXTURE_2D, e.distortionTexture), l ? u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, u.RGBA, u.UNSIGNED_BYTE, l) : u.texImage2D(u.TEXTURE_2D, 0, u.RGBA, 1, 1, 0, u.RGBA, u.UNSIGNED_BYTE, new Uint8Array([
 		128,
 		128,
 		128,
@@ -559,7 +563,7 @@ var q = class {
 	}
 	rebuildLayout() {
 		if (this.destroyed) return;
-		let e = this.options, t = window.innerWidth, n = window.innerHeight, r = Math.min(window.devicePixelRatio || 1, 2), i = S(e, r, this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE)), a = this.resolveOverscan(e, i), o = p(t, n, e, a.path), s = e.repeatTexture ? i.cssWidth * Math.max(.01, e.repeatWindowCopies) : i.cssWidth, c = _(o, i, e), l = this.getWindowVisibleBounds(s, i), u = e.direction === "reverse" ? l.start + a.inside.start : s - l.end + a.inside.start, d = e.direction === "reverse" ? o.length + l.end - a.inside.end : o.length + s - l.start - a.inside.end, f = Math.max(1, d - u), m = Math.max(0, e.scrollLaps), h = this.resolveScrollPadding(e, f), g = Math.max(1, f + h.start + h.end);
+		let e = this.options, t = window.innerWidth, n = window.innerHeight, r = Math.min(window.devicePixelRatio || 1, 2), i = S(e, r, this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE)), a = this.resolveOverscan(e, i), o = p(t, n, e, a.path), s = e.repeatTexture ? i.repeatSourceWidth * Math.max(.01, e.repeatWindowCopies) : i.cssWidth, c = _(o, i, e), l = this.getWindowVisibleBounds(s, i, e.repeatTexture), u = e.direction === "reverse" ? l.start + a.inside.start : s - l.end + a.inside.start, d = e.direction === "reverse" ? o.length + l.end - a.inside.end : o.length + s - l.start - a.inside.end, f = Math.max(1, d - u), m = Math.max(0, e.scrollLaps), h = this.resolveScrollPadding(e, f), g = Math.max(1, f + h.start + h.end);
 		this.canvas.width = Math.ceil(t * r), this.canvas.height = Math.ceil(n * r), this.canvas.style.width = `${t}px`, this.canvas.style.height = `${n}px`, W(this.renderer, i, c, o.length, t, n, r, s, e.distortion, this.distortionTextureSource), this.layoutState = {
 			activeTravelDistance: f,
 			direction: e.direction,
@@ -610,15 +614,15 @@ var q = class {
 		let n = e % t;
 		return n < 1e-4 ? t : n;
 	}
-	getWindowVisibleBounds(e, t) {
-		let n = Math.min(t.visibleStart, e), r = n;
-		for (let n = 0; n < e; n += t.cssWidth) {
-			let i = n + t.visibleStart, a = Math.min(n + t.visibleEnd, e);
-			i <= e && a > i && (r = Math.max(r, a));
+	getWindowVisibleBounds(e, t, n) {
+		let r = n ? t.repeatSourceStart : 0, a = n ? t.repeatSourceWidth : t.cssWidth, o = i(t.visibleStart - r, 0, a), s = i(t.visibleEnd - r, 0, a), c = Math.min(o, e), l = c;
+		for (let t = 0; t < e; t += a) {
+			let n = t + o, r = Math.min(t + s, e);
+			n <= e && r > n && (l = Math.max(l, r));
 		}
 		return {
-			end: r,
-			start: n
+			end: l,
+			start: c
 		};
 	}
 	getMaxScrollDistance() {

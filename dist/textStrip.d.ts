@@ -5,6 +5,8 @@ export type TextStrip = {
     cssHeight: number;
     cssWidth: number;
     midline: number;
+    repeatSourceStart: number;
+    repeatSourceWidth: number;
     scale: number;
     textureRows: number;
     textureRowWidth: number;
