@@ -12,6 +12,10 @@ export type TickerRun = {
   fill?: string;
   fontStyle?: FontStyle;
   fontWeight?: string | number;
+  /** Mirror the run horizontally inside its laid-out text segment. */
+  mirrorX?: boolean;
+  /** Mirror the run vertically inside its line box. */
+  mirrorY?: boolean;
   /** Punch the glyphs out of the background instead of painting them. */
   punchOut?: boolean;
   /** Per-run letter spacing override (defaults to `letterSpacing`). */

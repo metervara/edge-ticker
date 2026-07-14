@@ -85,6 +85,16 @@ export function renderTextStrip(
   stripContext.imageSmoothingQuality = "high";
 
   options.runs.forEach((run) => {
+    const runGlyphs = layout.glyphs.filter((glyph) => glyph.run === run);
+    const runTextSegments = mergeSegments(
+      runGlyphs.map((glyph) => ({
+        end: glyph.localX + glyph.advance,
+        row: glyph.row,
+        run,
+        start: glyph.localX,
+      })),
+    );
+
     if (run.background) {
       const backgroundSegments = mergeSegments(
         layout.backgroundSegments.filter((segment) => segment.run === run),
@@ -109,15 +119,16 @@ export function renderTextStrip(
     stripContext.globalCompositeOperation = run.punchOut
       ? "destination-out"
       : "source-over";
-    layout.glyphs
-      .filter((glyph) => glyph.run === run)
-      .forEach((glyph) => {
-        stripContext.fillText(
-          glyph.glyph,
-          glyph.localX,
-          glyph.row * cssHeight + metrics.baseline,
-        );
-      });
+    runGlyphs.forEach((glyph) => {
+      drawGlyph(
+        stripContext,
+        glyph,
+        runTextSegments,
+        metrics,
+        cssHeight,
+        options,
+      );
+    });
 
     if (run.underline) {
       drawUnderlineSegments(
@@ -129,6 +140,7 @@ export function renderTextStrip(
         cssHeight,
         options,
         run.fill || "#111111",
+        run,
       );
     }
 
@@ -372,6 +384,70 @@ function mergeSegments(segments: LaidOutSegment[]) {
   return merged;
 }
 
+function drawGlyph(
+  context: CanvasRenderingContext2D,
+  glyph: LaidOutGlyph,
+  runSegments: LaidOutSegment[],
+  metrics: FontMetrics,
+  rowHeight: number,
+  options: TickerOptions,
+) {
+  const segment = findSegmentForGlyph(glyph, runSegments);
+
+  withRunMirrorTransform(context, glyph.run, segment, rowHeight, options, () => {
+    context.fillText(
+      glyph.glyph,
+      glyph.localX,
+      glyph.row * rowHeight + metrics.baseline,
+    );
+  });
+}
+
+function findSegmentForGlyph(
+  glyph: LaidOutGlyph,
+  runSegments: LaidOutSegment[],
+) {
+  return (
+    runSegments.find(
+      (segment) =>
+        segment.row === glyph.row &&
+        glyph.localX >= segment.start - 0.1 &&
+        glyph.localX <= segment.end + 0.1,
+    ) ?? {
+      end: glyph.localX + glyph.advance,
+      row: glyph.row,
+      run: glyph.run,
+      start: glyph.localX,
+    }
+  );
+}
+
+function withRunMirrorTransform(
+  context: CanvasRenderingContext2D,
+  run: TickerRun,
+  segment: LaidOutSegment,
+  rowHeight: number,
+  options: TickerOptions,
+  draw: () => void,
+) {
+  if (!run.mirrorX && !run.mirrorY) {
+    draw();
+    return;
+  }
+
+  const centerY =
+    segment.row * rowHeight + options.stripPaddingY + options.font.lineHeight / 2;
+
+  context.save();
+  context.translate(
+    run.mirrorX ? segment.start + segment.end : 0,
+    run.mirrorY ? centerY * 2 : 0,
+  );
+  context.scale(run.mirrorX ? -1 : 1, run.mirrorY ? -1 : 1);
+  draw();
+  context.restore();
+}
+
 function drawBackgroundSegment(
   context: CanvasRenderingContext2D,
   segment: LaidOutSegment,
@@ -406,17 +482,21 @@ function drawUnderlineSegments(
   rowHeight: number,
   options: TickerOptions,
   stroke: string,
+  run: TickerRun,
 ) {
   context.strokeStyle = stroke;
   context.lineWidth = Math.max(2, options.font.size * 0.07);
 
   segments.forEach((segment) => {
-    const y = segment.row * rowHeight + metrics.baseline + options.font.size * 0.14;
+    withRunMirrorTransform(context, run, segment, rowHeight, options, () => {
+      const y =
+        segment.row * rowHeight + metrics.baseline + options.font.size * 0.14;
 
-    context.beginPath();
-    context.moveTo(segment.start, y);
-    context.lineTo(segment.end, y);
-    context.stroke();
+      context.beginPath();
+      context.moveTo(segment.start, y);
+      context.lineTo(segment.end, y);
+      context.stroke();
+    });
   });
 }
 

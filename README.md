@@ -126,11 +126,17 @@ type TickerRun = {
   fill?: string;         // text color (default #111111)
   fontStyle?: "normal" | "italic" | "oblique";
   fontWeight?: string | number;
+  mirrorX?: boolean;     // mirror this run horizontally inside its segment
+  mirrorY?: boolean;     // mirror this run vertically inside its line box
   punchOut?: boolean;    // knock glyphs out of the background
   tracking?: number;     // per-run letter spacing
   underline?: boolean;
 };
 ```
+
+`mirrorX` and `mirrorY` can be combined. Mirroring keeps the run's measured
+width and placement unchanged; only the rendered glyphs and underline are
+flipped in the generated text texture.
 
 ### Custom font
 
