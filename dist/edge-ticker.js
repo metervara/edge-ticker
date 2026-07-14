@@ -430,7 +430,7 @@ function F(e, t, n, r, i, a) {
 		a();
 		return;
 	}
-	let o = n.row * r + i.stripPaddingY + i.font.lineHeight / 2;
+	let o = n.row * r + i.stripPaddingY + i.font.lineHeight / 2 + (t.mirrorY ? (t.mirrorOffsetY ?? 0) / 2 : 0);
 	e.save(), e.translate(t.mirrorX ? n.start + n.end : 0, t.mirrorY ? o * 2 : 0), e.scale(t.mirrorX ? -1 : 1, t.mirrorY ? -1 : 1), a(), e.restore();
 }
 function I(e, t, n, r, i, a, o) {

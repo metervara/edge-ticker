@@ -445,7 +445,10 @@ function withRunMirrorTransform(
   }
 
   const centerY =
-    segment.row * rowHeight + options.stripPaddingY + options.font.lineHeight / 2;
+    segment.row * rowHeight +
+    options.stripPaddingY +
+    options.font.lineHeight / 2 +
+    (run.mirrorY ? (run.mirrorOffsetY ?? 0) / 2 : 0);
 
   context.save();
   context.translate(

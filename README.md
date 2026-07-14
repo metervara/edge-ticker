@@ -128,6 +128,7 @@ type TickerRun = {
   fontWeight?: string | number;
   mirrorX?: boolean;     // mirror this run horizontally inside its segment
   mirrorY?: boolean;     // mirror this run vertically inside its line box
+  mirrorOffsetY?: number; // output shift in px for optical mirrorY tuning
   punchOut?: boolean;    // knock glyphs out of the background
   tracking?: number;     // per-run letter spacing
   underline?: boolean;
@@ -137,6 +138,10 @@ type TickerRun = {
 `mirrorX` and `mirrorY` can be combined. Mirroring keeps the run's measured
 width and placement unchanged; only the rendered glyphs and underline are
 flipped in the generated text texture.
+
+If a vertically mirrored run looks optically high or low for a particular
+font, use `mirrorOffsetY` to nudge the mirrored output in CSS pixels. Positive
+values move it down; negative values move it up.
 
 ### Custom font
 

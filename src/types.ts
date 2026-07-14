@@ -16,6 +16,8 @@ export type TickerRun = {
   mirrorX?: boolean;
   /** Mirror the run vertically inside its line box. */
   mirrorY?: boolean;
+  /** Extra vertical output shift, in CSS pixels, for mirrorY tuning. */
+  mirrorOffsetY?: number;
   /** Punch the glyphs out of the background instead of painting them. */
   punchOut?: boolean;
   /** Per-run letter spacing override (defaults to `letterSpacing`). */
